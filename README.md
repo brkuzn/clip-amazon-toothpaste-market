@@ -149,8 +149,8 @@ See `blp_three_models.html` for the interactive dashboard with all three models,
 If you use this code or data, please cite:
 
 ```
-Kuzner, B. (2026). CLIP Embeddings for Market Definition:
+Uzun, B. (2026). CLIP Embeddings for Market Definition:
 Evidence from the Amazon Toothpaste Market.
-Master's Thesis, [University Name].
+Master's Thesis, Carl von Ossietzky Universität Oldenburg.
 https://github.com/brkuzn/clip-amazon-toothpaste-market
 ```
