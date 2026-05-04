@@ -1,6 +1,7 @@
-# CLIP Embeddings for Market Definition: Amazon Toothpaste (2019–2022)
+# CLIP Embeddings for Market Definition
 
-**Master's Thesis — Demand Estimation & Merger Simulation**  
+**Master's Thesis — Demand Estimation with Unstructured Product Data: Evidence from Amazon’s
+Toothpaste Market**  
   Burak Uzun · burak.uzun@uni-oldenburg.de · brkuznmail@gmail.com
 
 > *Does the hello → Colgate merger (2020Q1) raise toothpaste prices on Amazon?*  
