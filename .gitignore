@@ -1,0 +1,21 @@
+# Raw individual-level choice data (148 MB, not redistributed)
+choice_set_with_state_and_region.csv
+*choice_set*.csv
+
+# R session artifacts
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+
+# macOS
+.DS_Store
+
+# Large intermediate files
+*calibrated*.csv
+*diagnostic*.csv
+*validate_nash*.csv
+*unit_price*.csv
+*fix12*.csv
+*clip_nesting*.csv
+*clip_nests_assign*.csv

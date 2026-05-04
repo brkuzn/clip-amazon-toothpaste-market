@@ -1,0 +1,25 @@
+model,brand,avg_price_obs,avg_mc,lerner_pct,med_elas,price_nomerger,price_merger,effect_pct
+Logit,Sensodyne,10.45,7.17,41,-2.997,10.046,10.046,0
+Logit,JASON,4.25,1.01,78.2,-1.324,3.494,3.494,0
+Logit,Orajel,2.96,-0.27,112.4,-0.856,2.855,2.855,0
+Logit,Colgate,8.45,5.16,53.4,-2.81,8.292,8.299,0.104
+Logit,APAGARD,19.22,15.99,18.2,-5.012,19.508,19.508,0
+Logit,Crest,8.87,5.6,47.8,-2.338,9.176,9.176,0
+Logit,Tom's of Maine,10.47,7.17,34.2,-3.239,10.701,10.707,0.069
+Logit,hello,6.43,3.2,67.3,-1.385,7.1,7.164,1.233
+Brand-Nested,Sensodyne,10.45,7.17,41,-4.274,10.067,10.067,0
+Brand-Nested,JASON,4.25,1.01,78.2,-1.578,3.494,3.494,0
+Brand-Nested,Orajel,2.96,-0.27,112.4,-1.202,2.855,2.855,0
+Brand-Nested,Colgate,8.45,5.16,53.4,-4.274,8.296,8.302,0.104
+Brand-Nested,APAGARD,19.22,15.99,18.2,-6.969,19.508,19.508,0
+Brand-Nested,Crest,8.87,5.6,47.8,-3.337,9.178,9.178,0
+Brand-Nested,Tom's of Maine,10.47,7.17,34.2,-4.593,10.705,10.711,0.069
+Brand-Nested,hello,6.43,3.2,67.3,-1.882,7.1,7.165,1.275
+CLIP-Nested,Sensodyne,10.45,7.28,39.6,-8.746,10.291,10.291,0
+CLIP-Nested,JASON,4.25,3.09,27.9,-3.835,3.552,3.553,0.018
+CLIP-Nested,Orajel,2.96,1.8,40.5,-2.527,2.862,2.862,0.007
+CLIP-Nested,Colgate,8.45,5.88,41.5,-8.266,8.59,8.592,0.018
+CLIP-Nested,APAGARD,19.22,18.07,6.5,-14.641,19.472,19.473,0.001
+CLIP-Nested,Crest,8.87,5.63,46.3,-6.459,9.184,9.184,0
+CLIP-Nested,Tom's of Maine,10.47,7.19,34.1,-8.612,10.717,10.719,0.021
+CLIP-Nested,hello,6.43,5.2,25.7,-4.036,7.046,7.066,0.404
