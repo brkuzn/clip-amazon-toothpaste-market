@@ -1,7 +1,7 @@
 # CLIP Embeddings for Market Definition: Amazon Toothpaste (2019–2022)
 
 **Master's Thesis — Demand Estimation & Merger Simulation**  
-Burak Kuzner · brkuznmail@gmail.com
+  Burak Uzun · burak.uzun@uni-oldenburg.de · brkuznmail@gmail.com
 
 > *Does the hello → Colgate merger (2020Q1) raise toothpaste prices on Amazon?*  
 > This repo replicates the full BLP demand estimation and Bertrand-Nash merger simulation  
