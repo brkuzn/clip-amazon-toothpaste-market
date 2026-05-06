@@ -49,6 +49,8 @@ clip-amazon-toothpaste-market/
 │       ├── model1_coefficients.csv
 │       ├── model2_coefficients.csv
 │       └── model3_coefficients.csv
+├── blp_thesis.Rmd                     # Self-contained R Markdown → compiles full PDF
+├── blp_thesis.pdf                     # Pre-compiled 7-page thesis PDF
 └── blp_three_models.html              # Interactive results dashboard
 ```
 
@@ -61,31 +63,45 @@ clip-amazon-toothpaste-market/
 ```r
 install.packages(c("data.table", "lubridate", "cluster",
                    "ggplot2", "ggrepel", "patchwork",
-                   "kableExtra"))
+                   "knitr", "rmarkdown", "kableExtra"))
 ```
 
-R ≥ 4.2 recommended.
+R ≥ 4.2 and [TinyTeX](https://yihui.org/tinytex/) (or another LaTeX distribution) for PDF output.
 
-### Step-by-step
+### Option A — Knit the thesis Rmd (recommended)
 
-Run scripts from the **project root** (`clip-amazon-toothpaste-market/`):
+`blp_thesis.Rmd` is self-contained: it sources all three scripts, runs the full pipeline, and renders every table and figure into a single PDF.
+
+1. Open `blp_thesis.Rmd` and set `BASE_DIR` at the top of the `setup` chunk to the **parent folder** that contains this repo:
 
 ```r
-# 1. Main demand estimation + merger simulation (≈ 5–10 min)
-setwd("/path/to/clip-amazon-toothpaste-market")
-source("scripts/blp_three_models.R")
-
-# 2. K sensitivity analysis (K=2..10, ≈ 15–20 min)
-source("scripts/clip_k_sensitivity.R")
-
-# 3. Figures and Table 1
-source("scripts/tables_and_figures.R")
-
-# 4. Inject tables into HTML dashboard
-source("scripts/inject_tables.R")
+# ── USER CONFIG ───────────────────────────────
+BASE_DIR <- "/path/to/parent/folder"
+# e.g. if the repo lives at /home/you/clip-amazon-toothpaste-market/
+# then BASE_DIR <- "/home/you"
 ```
 
-> **Note on paths:** Each script calls `setwd("/Users/brkuzn")` — update this to your local path before running, or set the working directory to the `data/` folder and remove the `setwd()` calls.
+2. Knit to PDF (≈ 25–30 min on first run; cached thereafter):
+
+```r
+rmarkdown::render("blp_thesis.Rmd", output_format = "pdf_document")
+```
+
+### Option B — Run scripts individually
+
+```r
+# Set working directory to the parent of this repo
+setwd("/path/to/parent/folder")
+
+# 1. Main demand estimation + merger simulation (≈ 5–10 min)
+source("clip-amazon-toothpaste-market/scripts/blp_three_models.R")
+
+# 2. K sensitivity analysis (K=2..10, ≈ 15–20 min)
+source("clip-amazon-toothpaste-market/scripts/clip_k_sensitivity.R")
+
+# 3. Figures and Table 1
+source("clip-amazon-toothpaste-market/scripts/tables_and_figures.R")
+```
 
 ---
 

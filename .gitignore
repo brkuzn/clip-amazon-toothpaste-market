@@ -8,6 +8,11 @@ choice_set_with_state_and_region.csv
 .Rproj.user/
 *.Rproj
 
+# knitr cache — excluded so replicators always run code from scratch
+blp_cache/
+*_cache/
+*_files/
+
 # macOS
 .DS_Store
 

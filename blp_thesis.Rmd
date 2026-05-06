@@ -1,0 +1,676 @@
+---
+title: "CLIP Embeddings as Product Characteristics in BLP Merger Simulation"
+subtitle: "Evidence from the hello→Colgate Acquisition in the US Toothpaste Market"
+author: "Burak Uzun"
+date: "`r format(Sys.Date(), '%B %Y')`"
+output:
+  html_document:
+    number_sections: true
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    fig_caption: true
+    df_print: kable
+  pdf_document:
+    latex_engine: pdflatex
+    number_sections: true
+    toc: false
+    fig_caption: true
+    keep_tex: false
+    extra_dependencies: ["booktabs", "longtable", "array", "multirow", "threeparttable", "caption"]
+geometry: "margin=1in"
+fontsize: 11pt
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{float}
+  - \usepackage{placeins}
+  - \usepackage{threeparttable}
+  - \usepackage{caption}
+  - \captionsetup[table]{skip=6pt}
+  - \renewcommand{\arraystretch}{1.15}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  fig.pos = "H"
+)
+
+# ── USER CONFIG ───────────────────────────────────────────────────────────────
+# Set BASE_DIR to the parent folder that contains BOTH:
+#   clip-amazon-toothpaste-market/   (the cloned repo with scripts/ and data/)
+#   analysis_2704/                   (output folder; will be created if absent)
+# Example: BASE_DIR <- "/home/yourname"
+BASE_DIR   <- "/Users/brkuzn"
+out_dir    <- file.path(BASE_DIR, "analysis_2704")
+script_dir <- file.path(BASE_DIR, "clip-amazon-toothpaste-market/scripts")
+# ─────────────────────────────────────────────────────────────────────────────
+
+knitr::opts_knit$set(root.dir = BASE_DIR)
+
+# Detect output format (html or latex)
+is_pdf  <- knitr::is_latex_output()
+tbl_fmt <- if (is_pdf) "latex" else "html"
+
+library(data.table)
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+library(ggrepel)
+library(patchwork)
+library(lubridate)
+library(cluster)   # needed by clip_k_sensitivity.R
+
+setwd(BASE_DIR)
+```
+
+```{r computation, include=FALSE, cache=TRUE, cache.extra=tools::md5sum(file.path(BASE_DIR, "clip-amazon-toothpaste-market/scripts", c("blp_three_models.R","tables_and_figures.R","clip_k_sensitivity.R")))}
+# ── Run all three computation scripts ────────────────────────────────────────
+# Each script is self-contained: reads raw data, runs estimation/simulation,
+# and writes output CSVs to analysis_2704/.  cache=TRUE means this block only
+# re-executes when the scripts themselves change (tracked via cache.extra MD5).
+#
+# Expected runtimes (approximate):
+#   blp_three_models.R    :  5–10 min  (BLP estimation + Nash simulation × 3 models)
+#   tables_and_figures.R  :  < 1 min   (summary stats + Table 1)
+#   clip_k_sensitivity.R  : 15–20 min  (K = 2..10 × full BLP pipeline each)
+#
+# To force a full re-run, delete the blp_thesis_cache/ folder.
+
+source(file.path(script_dir, "blp_three_models.R"))
+source(file.path(script_dir, "tables_and_figures.R"))
+source(file.path(script_dir, "clip_k_sensitivity.R"))
+```
+
+```{r load_results, include=FALSE}
+# ── Load outputs written by the computation scripts ───────────────────────────
+tab1_raw  <- fread(file.path(out_dir, "table1_cluster_summary.csv"))
+coef1     <- fread(file.path(out_dir, "model1_coefficients.csv"))
+coef2     <- fread(file.path(out_dir, "model2_coefficients.csv"))
+coef3     <- fread(file.path(out_dir, "model3_coefficients.csv"))
+merger    <- fread(file.path(out_dir, "three_models_merger_summary.csv"))
+rmse_dt   <- fread(file.path(out_dir, "three_models_rmse.csv"))
+ksens_dt  <- fread(file.path(out_dir, "clip_k_sensitivity.csv"))
+
+# Scalar parameters (must match blp_three_models.R)
+EPS_TARGET <- -2.62
+ALPHA      <- -0.31005
+RHO_M2     <- 0.35
+RHO_M3     <- 0.67
+```
+
+---
+
+# Data and Panel Construction
+
+The dataset is an ASIN x quarter panel covering the Amazon US toothpaste market from 2019Q1 to 2022Q3 (19 quarters, 159 ASINs, 1,164 observations). Market shares are constructed using revealed-preference purchase data. Market size $M_t$ is set to $(1 + \lambda) \cdot \sum_j q_{jt}$ with $\lambda = 13.93$, implying an outside-good share of approximately 93%.
+
+CLIP (Contrastive Language-Image Pre-training; Radford et al. 2021) embeddings are computed for each ASIN using its product image and listing text. A joint 512-dimensional embedding is reduced to five principal components (PC1–PC5), which together explain 71.2% of the within-cluster variance. Five clusters are obtained via $K$-means ($K=5$, 50 restarts, seed 42).
+
+---
+
+# Demand Specification
+
+## Berry (1994) Linearisation
+
+All three models are estimated via the Berry (1994) nested-logit linearisation:
+
+$$\log\frac{s_{jt}}{s_{0t}} - \rho\,\log s_{j|g,t} = \alpha\,p_{jt} + \boldsymbol{\beta}'\mathbf{x}_{jt} + \text{FE}_t + \xi_{jt}$$
+
+where $s_{j|g,t} = s_{jt}/\!\sum_{k\in g}s_{kt}$ is the within-nest share, $\rho\in[0,1)$ is the nesting intensity, and $\text{FE}_t$ are quarter fixed effects (absorbed by within-quarter demeaning).
+
+## Price Coefficient Calibration
+
+Valid cost-side instruments for price are unavailable in this high-frequency online retail dataset (see Section 5). Following the recommendation of Berry (1994) and standard practice in applied antitrust simulation, $\alpha$ is calibrated to match a target median own-price elasticity:
+
+$$\alpha = \frac{\varepsilon_{\text{target}}}{\operatorname{median}(p_{jt}(1-s_{jt}))} = \frac{-2.62}{8.4502} = -0.310$$
+
+The target $\varepsilon_{\text{target}} = -2.62$ corresponds to the brand-level CPG meta-analysis mean of Bijmolt, van Heerde \& Pieters (2005), consistent with structural BLP estimates for analogous packaged-goods categories (Nevo 2001; Draganska \& Jain 2006).
+
+**Sequential calibration note.** Since $\alpha$ is calibrated at $\rho=0$, the target elasticity $-2.62$ is the logit median. At the profiled nesting parameters ($\rho^*=0.35$ for M2, $\rho^*=0.67$ for M3), the nested-logit formula amplifies own-price sensitivity by approximately $1/(1-\rho^*)$, yielding implied median elasticities of approximately $-4.0$ (M2) and $-7.9$ (M3).
+
+## $\rho^*$ Selection — Concentrated OLS Profile
+
+For each $\rho$ on a fine grid $\{0, 0.01, \ldots, 0.90\}$, the adjusted dependent variable is formed and $\boldsymbol{\beta}(\rho)$ is estimated by OLS. The profiled $\rho^*$ minimises the residual sum of squares:
+
+$$\tilde{y}_{jt}(\rho) = \log\frac{s_{jt}}{s_{0t}} - \alpha p_{jt} - \rho\log s_{j|g,t}, \qquad \rho^* = \arg\min_\rho \left\|\tilde{y}(\rho) - \mathbf{X}\hat{\boldsymbol{\beta}}(\rho)\right\|^2$$
+
+---
+
+# Tables
+
+```{r table1}
+if (is_pdf) {
+  col_names_t1 <- c("Cluster","Dom. Brand","$N$ ASINs",
+                    "$\\bar{p}$","$\\tilde{p}$","$\\sigma_p$",
+                    "$\\bar{s}\\times10^3$","$\\tilde{s}\\times10^3$","$\\sigma_s\\times10^3$",
+                    "$\\bar{w}$","$\\tilde{w}$","$\\sigma_w$")
+  hdr_above  <- c(" "=3, "Price (USD)"=3, "Mkt. Share (x1000)"=3, "Pkg. Size (g)"=3)
+  t1_footnote <- "Panel: 1,164 ASIN x quarter observations, 19 quarters (2019Q1--2022Q3). Mean/Median/SD of price in USD, market share scaled x1000, package weight in grams. Dominant brand = modal brand by ASIN count within cluster."
+} else {
+  col_names_t1 <- c("Cluster","Dom. Brand","N ASINs",
+                    "Mean","Median","SD","Mean","Median","SD","Mean","Median","SD")
+  hdr_above  <- c(" "=3, "Price ($)"=3, "Mkt. Share (x1000)"=3, "Pkg. Size (g)"=3)
+  t1_footnote <- "Panel: 1,164 ASIN x quarter observations, 19 quarters (2019Q1-2022Q3). Mean/Median/SD of price in USD, market share scaled x1000, package weight in grams. Dominant brand = modal brand by ASIN count within cluster."
+}
+
+t1 <- tab1_raw[, .(
+  Cluster   = paste0("C", clip_nest),
+  DomBrand  = ifelse(dom_brand == "Other", "Other (hello)", dom_brand),
+  N_asins   = n_asins,
+  PriceMean = sprintf("%.2f", price_mean),
+  PriceMed  = sprintf("%.2f", price_median),
+  PriceSD   = sprintf("%.2f", price_sd),
+  ShareMean = sprintf("%.3f", share_mean),
+  ShareMed  = sprintf("%.3f", share_median),
+  ShareSD   = sprintf("%.3f", share_sd),
+  PkgMean   = sprintf("%.0f", pkg_mean),
+  PkgMed    = sprintf("%.0f", pkg_median),
+  PkgSD     = sprintf("%.0f", pkg_sd)
+)]
+
+kbl(t1,
+    col.names = col_names_t1,
+    format    = tbl_fmt,
+    booktabs  = TRUE,
+    escape    = FALSE,
+    caption   = "Summary Statistics by CLIP Cluster",
+    align     = c("l","l","r","r","r","r","r","r","r","r","r","r")) |>
+  add_header_above(hdr_above, escape = FALSE) |>
+  kable_styling(
+    bootstrap_options = c("striped","hover","condensed","responsive"),
+    latex_options     = c("hold_position"),
+    font_size         = if (is_pdf) 8 else 13,
+    full_width        = if (is_pdf) TRUE else FALSE
+  ) |>
+  footnote(general = t1_footnote, escape = TRUE, general_title = "Notes: ")
+```
+
+\vspace{1em}
+
+```{r table2}
+if (is_pdf) {
+  var_labels <- c(
+    "prices_alpha"         = "$\\alpha$ (price)",
+    "pkg_size"             = "Package size (g)",
+    "joint_pc1"            = "CLIP $PC_1$",
+    "joint_pc2"            = "CLIP $PC_2$",
+    "joint_pc3"            = "CLIP $PC_3$",
+    "joint_pc4"            = "CLIP $PC_4$",
+    "joint_pc5"            = "CLIP $PC_5$",
+    "is_other"             = "Other brand",
+    "import_freight_shock" = "Import x freight shock",
+    "rho"                  = "$\\rho^*$"
+  )
+  alpha_cell  <- "$-$0.310 (a)"
+  logit_rho   <- "0.000 (b)"
+  fmt_rho     <- function(b) paste0(sprintf("%.3f", b), " (b)")
+  sym_notes   <- NULL
+  gen_note    <- "*** p<0.01, ** p<0.05, * p<0.10. FEs by quarter. N=1,164. (a) calibrated alpha; (b) grid-searched rho*. Secs. 2.2-2.3."
+  summ_rows   <- data.table(
+    variable = c("Implied median $\\varepsilon$", "RSS drop vs $\\rho$=0"),
+    M1 = c("$-$2.62", "---"),
+    M2 = c("$\\approx -4.0$", "3.1\\%"),
+    M3 = c("$\\approx -7.9$", "8.1\\%")
+  )
+  col_names_t2 <- c("Variable","M1: Logit ($\\rho$=0)",
+                    "M2: Brand-Nested ($\\rho^*$=0.35)",
+                    "M3: CLIP-Nested ($\\rho^*$=0.67)")
+} else {
+  var_labels <- c(
+    "prices_alpha"         = "alpha (price)",
+    "pkg_size"             = "Package size (g)",
+    "joint_pc1"            = "CLIP PC1",
+    "joint_pc2"            = "CLIP PC2",
+    "joint_pc3"            = "CLIP PC3",
+    "joint_pc4"            = "CLIP PC4",
+    "joint_pc5"            = "CLIP PC5",
+    "is_other"             = "Other brand",
+    "import_freight_shock" = "Import x freight shock",
+    "rho"                  = "rho*"
+  )
+  alpha_cell  <- "-0.310 +"
+  logit_rho   <- "0.000 ++"
+  fmt_rho     <- function(b) paste0(sprintf("%.3f", b), " ++")
+  sym_notes   <- NULL
+  gen_note    <- paste0(
+    "Standard errors in parentheses. Significance: ***p<0.01, **p<0.05, *p<0.10. ",
+    "Quarter FEs absorbed by demeaning. 1,164 obs., 159 ASINs, 19 quarters. ",
+    "+ Calibrated: alpha = eps_target / median(p(1-s)) = -2.62/8.45. Not estimated. ",
+    "++ Grid-searched on {0, 0.01, ..., 0.90}; rho=0 fixed for M1."
+  )
+  summ_rows   <- data.table(
+    variable = c("Implied median elasticity", "RSS drop vs rho=0"),
+    M1 = c("-2.62", "--"),
+    M2 = c("approx -4.0", "3.1%"),
+    M3 = c("approx -7.9", "8.1%")
+  )
+  col_names_t2 <- c("Variable","M1: Logit (rho=0)",
+                    "M2: Brand-Nested (rho*=0.35)",
+                    "M3: CLIP-Nested (rho*=0.67)")
+}
+
+fmt_coef <- function(dt, model_name) {
+  dt2 <- dt[variable %in% names(var_labels)]
+  dt2[, cell := fcase(
+    variable == "prices_alpha",
+      alpha_cell,
+    variable == "rho" & model_name == "Logit",
+      logit_rho,
+    variable == "rho",
+      fmt_rho(beta),
+    !is.na(se),
+      paste0(sprintf("%.4f", beta), signif, " (", sprintf("%.4f", se), ")"),
+    default = ""
+  )]
+  dt2[, .(variable, cell)]
+}
+
+c1 <- fmt_coef(coef1, "Logit")
+c2 <- fmt_coef(coef2, "Brand-Nested")
+c3 <- fmt_coef(coef3, "CLIP-Nested")
+
+tab2 <- merge(c1, c2, by="variable", suffixes=c("_m1","_m2"))
+tab2 <- merge(tab2, c3, by="variable")
+setnames(tab2, c("cell","cell_m1","cell_m2"), c("M3","M1","M2"))
+tab2 <- tab2[match(names(var_labels), variable), .(variable, M1, M2, M3)]
+tab2[, variable := var_labels[variable]]
+tab2 <- rbind(tab2, summ_rows)
+n_main <- length(var_labels)
+
+kbl(tab2,
+    col.names = col_names_t2,
+    format    = tbl_fmt,
+    booktabs  = TRUE,
+    escape    = FALSE,
+    caption   = "Demand Parameter Estimates --- Three Models",
+    align     = c("l","c","c","c")) |>
+  kable_styling(
+    bootstrap_options = c("striped","hover","condensed"),
+    latex_options     = c("HOLD_position"),
+    font_size         = if (is_pdf) 9 else 13,
+    full_width        = if (is_pdf) TRUE else FALSE
+  ) |>
+  row_spec(1, bold = TRUE, background = "#EEF2FF") |>
+  row_spec(n_main, extra_css = "border-bottom: 2px solid #aaa;",
+           hline_after = TRUE) |>
+  footnote(general = gen_note, escape = TRUE, general_title = "Notes: ")
+```
+
+\vspace{1em}
+
+```{r table3}
+focus   <- c("hello","Colgate","Tom's of Maine","Crest","Sensodyne")
+models  <- c("Logit","Brand-Nested","CLIP-Nested")
+n_focus <- length(focus)
+
+# For LaTeX: % is a comment character — escape it
+pct_sym3 <- if (is_pdf) "\\%" else "%"
+
+tab3_list <- lapply(models, function(m) {
+  sub <- merger[model==m & brand %in% focus]
+  sub <- sub[match(focus, brand)]
+  data.table(
+    brand     = sub$brand,
+    obs       = sprintf("%.2f", sub$avg_price_obs),
+    mc        = sprintf("%.2f", sub$avg_mc),
+    nomerger  = sprintf("%.2f", sub$price_nomerger),
+    merger_p  = sprintf("%.2f", sub$price_merger),
+    delta_abs = sprintf("%.3f", sub$price_merger - sub$price_nomerger),
+    delta_pct = paste0(sprintf("%.3f", sub$effect_pct), pct_sym3)
+  )
+})
+
+tab3_flat <- rbindlist(tab3_list)
+
+# Merger parties in the flat 15-row table (hello=row 1, Colgate=row 2 per block)
+party_rows <- c(1, 2, n_focus + 1, n_focus + 2, 2*n_focus + 1, 2*n_focus + 2)
+
+# Group header labels (LaTeX math for PDF)
+if (is_pdf) {
+  pg1 <- "M1: Logit ($\\rho$=0)"
+  pg2 <- "M2: Brand-Nested ($\\rho^*$=0.35)"
+  pg3 <- "M3: CLIP-Nested ($\\rho^*$=0.67)"
+} else {
+  pg1 <- "M1: Logit (rho=0)"
+  pg2 <- "M2: Brand-Nested (rho*=0.35)"
+  pg3 <- "M3: CLIP-Nested (rho*=0.67)"
+}
+
+col_t3 <- if (is_pdf) {
+  c("Brand", "Obs. $p$", "MC", "Nash (pre)", "Nash (post)", "$\\Delta p$", "$\\Delta p$ \\%")
+} else {
+  c("Brand", "Obs. p", "MC", "Nash (pre)", "Nash (post)", "Δp", "Δp %")
+}
+
+kbl(tab3_flat,
+    col.names = col_t3,
+    format    = tbl_fmt,
+    booktabs  = TRUE,
+    escape    = FALSE,
+    caption   = "Merger Counterfactuals: hello-to-Colgate Acquisition (2020Q1)",
+    align     = c("l","r","r","r","r","r","r")) |>
+  pack_rows(pg1, 1,            n_focus,   bold = TRUE, italic = TRUE, escape = FALSE) |>
+  pack_rows(pg2, n_focus + 1,  2*n_focus, bold = TRUE, italic = TRUE, escape = FALSE) |>
+  pack_rows(pg3, 2*n_focus + 1, 3*n_focus, bold = TRUE, italic = TRUE, escape = FALSE) |>
+  row_spec(party_rows, bold = TRUE) |>
+  kable_styling(
+    bootstrap_options = c("striped","hover","condensed"),
+    latex_options     = c("HOLD_position"),
+    font_size         = if (is_pdf) 8 else 13,
+    full_width        = if (is_pdf) TRUE else FALSE
+  ) |>
+  footnote(
+    general = paste0(
+      "All prices USD; post-merger averages (2020Q1--2022Q3). ",
+      "Bold = merger parties. ",
+      "Nash (pre): Bertrand-Nash under pre-merger ownership. ",
+      "Nash (post): equilibrium under merged ownership. ",
+      "Dp = Nash (post) minus Nash (pre). ",
+      "MC inverted from pre-merger FOC and held fixed."
+    ),
+    escape        = TRUE,
+    general_title = "Notes: "
+  )
+```
+
+\clearpage
+
+# Figures
+
+```{r figure1, fig.cap="Product space from CLIP embeddings. Each point is one ASIN positioned by its first two principal components of the joint image+text embedding. Cluster centroids are labelled C1--C5. hello (red diamonds, C5) and Colgate (dark blue triangles, C2) occupy different clusters, implying a lower diversion ratio and a smaller predicted merger effect under CLIP nesting relative to plain logit.", fig.width=6.5, fig.height=4.8}
+
+# ── rebuild figure 1 inline ──────────────────────────────────────────────────
+LAMBDA        <- 13.93
+TIME_CUTOFF   <- as.Date("2022-07-01")
+MIN_QUARTERS  <- 3
+K_CLIP        <- 5
+PC_COLS       <- paste0("joint_pc", 1:5)
+
+panel <- fread("asin_quarter_panel.csv")
+panel[, month_date_dummy := as.Date(paste0(
+  sub("Q.*","",quarter),"-",
+  sprintf("%02d",(as.integer(sub(".*Q","",quarter))-1)*3+1),"-01"))]
+panel <- panel[month_date_dummy <= TIME_CUTOFF][, month_date_dummy := NULL]
+
+asin_chars <- fread("asin_characteristics.csv")
+panel <- merge(panel, asin_chars[, .(asin, pkg_size, is_import)], by="asin", all.x=TRUE)
+panel[is.na(pkg_size),  pkg_size  := median(panel$pkg_size,  na.rm=TRUE)]
+panel[is.na(is_import), is_import := 0]
+keep_asins <- panel[, .(n=uniqueN(quarter)), by=asin][n>=MIN_QUARTERS, asin]
+panel      <- panel[asin %in% keep_asins]
+
+pcs_raw <- fread("asin_joint_pcs_complete.csv")
+pcs_raw <- pcs_raw[asin %in% panel$asin]
+set.seed(42)
+km5 <- kmeans(as.matrix(pcs_raw[, PC_COLS, with=FALSE]),
+              centers=K_CLIP, nstart=50, iter.max=500)
+pcs_raw[, clip_nest := km5$cluster]
+panel <- merge(panel, pcs_raw[, .(asin, clip_nest)], by="asin", all.x=TRUE)
+
+asin_level <- panel[, .(
+  pc1       = mean(joint_pc1, na.rm=TRUE),
+  pc2       = mean(joint_pc2, na.rm=TRUE),
+  clip_nest = clip_nest[1],
+  brand     = brand_grouped_50[1]
+), by=asin]
+asin_level[, highlight := fifelse(brand=="hello","hello",
+                           fifelse(brand=="Colgate","Colgate","Other"))]
+
+centroids <- asin_level[, .(pc1=mean(pc1), pc2=mean(pc2)), by=clip_nest]
+centroids[, label := paste0("C", clip_nest)]
+centroids[, pc2_label := pc2]
+centroids[label=="C3", pc2_label := pc2 + 0.55]
+centroids[label=="C2", pc2_label := pc2 + 0.30]
+
+annot <- asin_level[highlight!="Other", .(pc1=mean(pc1), pc2=mean(pc2), label=brand), by=brand]
+
+cluster_colours <- c("1"="#4e79a7","2"="#f28e2b","3"="#e15759",
+                     "4"="#76b7b2","5"="#59a14f")
+
+ggplot(asin_level, aes(x=pc1, y=pc2)) +
+  geom_point(data=asin_level[highlight=="Other"],
+             aes(colour=factor(clip_nest)), alpha=0.55, size=2, shape=16) +
+  geom_label(data=centroids,
+             aes(x=pc1, y=pc2_label, label=label),
+             inherit.aes=FALSE,
+             colour="grey20", fill="white", size=2.8, fontface="bold",
+             label.padding=unit(0.2,"lines"), label.size=0.25) +
+  geom_point(data=asin_level[highlight=="hello"],
+             colour="#c0392b", fill="#c0392b", size=4, shape=23, stroke=1.2) +
+  geom_point(data=asin_level[highlight=="Colgate"],
+             colour="#1a5276", fill="#1a5276", size=4, shape=24, stroke=1.2) +
+  geom_label_repel(data=annot,
+                   aes(x=pc1, y=pc2, label=label),
+                   inherit.aes=FALSE,
+                   colour="grey10", fill="white", size=2.8, fontface="bold",
+                   nudge_y=0.3, nudge_x=0.1,
+                   label.padding=unit(0.2,"lines"), label.size=0.3,
+                   min.segment.length=0.15, segment.colour="grey50") +
+  scale_colour_manual(values=cluster_colours, name="Cluster",
+                      labels=paste0("C", 1:5), breaks=as.character(1:5)) +
+  labs(x="PC 1", y="PC 2") +
+  theme_minimal(base_size=10) +
+  theme(panel.grid.minor=element_blank(),
+        panel.grid.major=element_line(colour="grey92"),
+        legend.position="right")
+```
+
+\clearpage
+
+```{r figure2, fig.cap="Merger simulation price trajectories (Model 3, CLIP-Nested, $\\rho^*=0.67$). Top panel: Nash equilibrium prices under merged and pre-merger ownership. Observed prices are omitted from the top panel because their quarter-to-quarter variation (\\$4--\\$10) would compress the counterfactual divergence. Bottom panel: merger price effect in percent, $(p^{\\text{merger}} - p^{\\text{no-merger}})/p^{\\text{no-merger}} \\times 100$. hello (red) shows a positive and time-varying effect; Colgate (blue) remains near zero.", fig.width=7, fig.height=6}
+
+m3       <- fread(file.path(out_dir, "model3_asin_results.csv"))
+panel_m3 <- merge(panel, m3[,.(asin, quarter, price_nomerger, price_merger)],
+                  by=c("asin","quarter"), all.x=TRUE)
+
+MERGER_START <- "2020Q1"
+qtrs      <- sort(unique(panel_m3$quarter))
+post_qtrs <- qtrs[qtrs >= MERGER_START]
+
+price_avg <- panel_m3[brand_grouped_50 %in% c("hello","Colgate") &
+                      quarter %in% post_qtrs & !is.na(price_merger),
+  .(nomerger=mean(price_nomerger, na.rm=TRUE),
+    merger  =mean(price_merger,   na.rm=TRUE)),
+  by=.(brand=brand_grouped_50, quarter)]
+price_avg[, effect_pct := (merger-nomerger)/nomerger*100]
+
+price_long <- melt(price_avg[,.(brand,quarter,nomerger,merger)],
+                   id.vars=c("brand","quarter"),
+                   variable.name="series", value.name="price")
+price_long[, series := fifelse(series=="nomerger",
+                               "No-Merger Nash (counterfactual)",
+                               "Merger Nash (model)")]
+price_long[, series := factor(series,
+  levels=c("No-Merger Nash (counterfactual)","Merger Nash (model)"))]
+price_long[, qtr_num := match(quarter, post_qtrs)]
+
+# Annotation label for Colgate panel (lines visually overlap since Dp ~ 0.018%)
+colgate_annot <- data.table(
+  brand   = "Colgate",
+  qtr_num = length(post_qtrs) * 0.55,
+  price   = Inf,   # will be nudged to top via vjust
+  label   = "Lines overlap\n(Δp ≈ 0.018%)"
+)
+
+p_levels <- ggplot(price_long,
+                   aes(x=qtr_num, y=price, colour=series,
+                       linetype=series, group=series)) +
+  geom_line(linewidth=0.9) +
+  geom_point(size=1.9) +
+  geom_text(data=colgate_annot, aes(x=qtr_num, y=price, label=label),
+            inherit.aes=FALSE, vjust=1.3, size=2.5, colour="grey35",
+            fontface="italic", lineheight=0.9) +
+  scale_colour_manual(values=c("No-Merger Nash (counterfactual)"="#2563eb",
+                                "Merger Nash (model)"="#e15759"), name=NULL) +
+  scale_linetype_manual(values=c("No-Merger Nash (counterfactual)"="dashed",
+                                  "Merger Nash (model)"="solid"), name=NULL) +
+  scale_x_continuous(breaks=seq_along(post_qtrs), labels=post_qtrs) +
+  facet_wrap(~brand, scales="free_y", ncol=2) +
+  labs(y="Nash price ($)", x=NULL) +
+  theme_minimal(base_size=9) +
+  theme(legend.position="bottom",
+        axis.text.x=element_text(angle=45, hjust=1, size=7),
+        panel.grid.minor=element_blank(),
+        panel.grid.major=element_line(colour="grey92"),
+        strip.text=element_text(face="bold", size=10))
+
+price_avg[, brand := factor(brand, levels=c("Colgate","hello"))]
+p_effect <- ggplot(price_avg,
+                   aes(x=match(quarter, post_qtrs), y=effect_pct,
+                       colour=brand, group=brand)) +
+  geom_hline(yintercept=0, linetype="dashed", colour="grey65", linewidth=0.4) +
+  geom_line(linewidth=0.9) +
+  geom_point(size=2) +
+  scale_colour_manual(values=c("hello"="#e15759","Colgate"="#2563eb"), name=NULL) +
+  scale_x_continuous(breaks=seq_along(post_qtrs), labels=post_qtrs) +
+  labs(y="Merger effect (%)", x=NULL) +
+  theme_minimal(base_size=9) +
+  theme(legend.position="bottom",
+        axis.text.x=element_text(angle=45, hjust=1, size=7),
+        panel.grid.minor=element_blank(),
+        panel.grid.major=element_line(colour="grey92"))
+
+p_levels / p_effect + plot_layout(heights=c(2,1))
+```
+
+---
+
+# Bertrand--Nash Merger Simulation
+
+The Bertrand--Nash merger simulation follows the standard approach in Berry (1994) and Nevo (2000). Marginal costs are recovered from the pre-merger first-order condition:
+
+$$\mathbf{mc} = \mathbf{p} + (\Omega_{\text{pre}} \circ \Delta)^{-1}\mathbf{s}$$
+
+where $\Omega[j,k] = \mathbf{1}[\text{firm}_j = \text{firm}_k]$ and $\Delta$ is the demand Jacobian with elements:
+
+$$\Delta_{jj} = \alpha s_j\!\left[\tfrac{1}{1-\rho} - \tfrac{\rho}{1-\rho}s_{j|g} - s_j\right], \quad \Delta_{jk}^{\text{same}} = \alpha s_j\!\left[-\tfrac{\rho}{1-\rho}s_{k|g} - s_k\right], \quad \Delta_{jk}^{\text{diff}} = -\alpha s_j s_k$$
+
+Marginal costs are averaged per ASIN across pre-merger quarters and held fixed. Two Nash equilibria are computed via the damped fixed-point iteration of Nevo (2000):
+
+$$\mathbf{p}_{n+1} = \lambda\left[\mathbf{mc} - (\Omega \circ \Delta(\mathbf{p}_n))^{-1}\mathbf{s}(\mathbf{p}_n)\right] + (1-\lambda)\,\mathbf{p}_n$$
+
+with $\lambda = 0.4$, convergence tolerance $10^{-8}$, and up to 2,000 iterations. The post-merger simulation replaces $\Omega_{\text{pre}}$ with $\Omega_{\text{post}}$ (hello ASINs assigned to Colgate's firm identifier from 2020Q1). The merger price effect is the difference between these two equilibria: $\Delta p = p^{\text{merger}} - p^{\text{no-merger}}$.
+
+**Algorithm validation.** The manual R implementation is validated against PyBLP's `compute_prices()` (Conlon \& Gortmaker 2020). For both M1 (plain logit) and M3 (CLIP-nested, $\rho^*=0.67$), the maximum absolute difference across 847 post-merger observations is below $2 \times 10^{-8}$, confirming algorithmic equivalence.
+
+---
+
+# References
+
+Bijmolt, T.H.A., van Heerde, H.J., \& Pieters, R.G.M. (2005). New empirical generalizations on the determinants of price elasticity. *Journal of Marketing Research*, 42(2), 141--156.
+
+Berry, S.T. (1994). Estimating discrete-choice models of product differentiation. *RAND Journal of Economics*, 25(2), 242--262.
+
+Conlon, C., \& Gortmaker, J. (2020). Best practices for differentiated products demand estimation with PyBLP. *RAND Journal of Economics*, 51(4), 1108--1145.
+
+Draganska, M., \& Jain, D.C. (2006). Consumer preferences and product-line pricing strategies: An empirical analysis. *Marketing Science*, 25(2), 164--174.
+
+Nevo, A. (2000). A practitioner's guide to estimation of random-coefficients logit models of demand. *Journal of Economics \& Management Strategy*, 9(4), 513--548.
+
+Nevo, A. (2001). Measuring market power in the ready-to-eat cereal industry. *Econometrica*, 69(2), 307--342.
+
+Radford, A., Kim, J.W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S., \ldots \& Sutskever, I. (2021). Learning transferable visual models from natural language supervision. *Proceedings of the 38th International Conference on Machine Learning (ICML)*, 8748--8763.
+
+\clearpage
+
+# Appendix
+
+## A: K Sensitivity Analysis
+
+```{r appendix_k_sensitivity}
+# For PDF/LaTeX: % is a comment char → must escape as \%
+pct_sym <- if (is_pdf) "\\%" else "%"
+k_tbl <- ksens_dt[, .(
+  K           = K,
+  WCSS        = sprintf("%.1f",  wcss),
+  Silhouette  = sprintf("%.3f",  sil),
+  rho_star    = sprintf("%.2f",  rho_star),
+  rss_drop    = paste0(sprintf("%.1f", rss_drop),    pct_sym),
+  neg_mc      = paste0(sprintf("%.1f", neg_mc),      pct_sym),
+  hello_eff   = paste0(sprintf("%.2f", hello_eff),   pct_sym),
+  colgate_eff = paste0(sprintf("%.3f", colgate_eff), pct_sym)
+)]
+
+k5_row <- which(k_tbl$K == 5)
+
+if (is_pdf) {
+  col_k <- c("$K$", "WCSS", "Silhouette", "$\\rho^*$",
+             "RSS Drop", "Neg. MC\\%",
+             "hello $\\Delta p$\\%", "Colgate $\\Delta p$\\%")
+} else {
+  col_k <- c("K", "WCSS", "Silhouette", "rho*",
+             "RSS Drop", "Neg. MC%", "hello Dp%", "Colgate Dp%")
+}
+
+kbl(k_tbl,
+    col.names = col_k,
+    format    = tbl_fmt,
+    booktabs  = TRUE,
+    escape    = FALSE,
+    caption   = "K Sensitivity Analysis: CLIP Cluster Count K = 2--10",
+    align     = c("c","r","r","c","r","r","r","r")) |>
+  kable_styling(
+    bootstrap_options = c("striped","hover","condensed"),
+    latex_options     = c("HOLD_position"),
+    font_size         = if (is_pdf) 8 else 13,
+    full_width        = if (is_pdf) TRUE else FALSE
+  ) |>
+  row_spec(k5_row, bold = TRUE, background = "#D6EAD6")
+```
+
+*Notes:* K-means on 5 CLIP PCs (seed 42, 50 restarts). WCSS = within-cluster sum of squares. Silhouette = average silhouette width (higher = better separation). $\rho^*$ = argmin RSS on grid [0, 0.01, ..., 0.90]. RSS drop = $100 \times (RSS_0 - RSS^*)/RSS_0$. Neg. MC = share of ASINs with negative implied marginal cost. hello / Colgate $\Delta p$ = average post-merger price effect in percent (2020Q1--2022Q3). **Bold/green row = selected specification (K=5).**
+
+\vspace{1em}
+
+## B: Model Fit --- RMSE and MAE
+
+```{r appendix_rmse}
+model_order <- c("Logit","Brand-Nested","CLIP-Nested")
+model_lab   <- c("Logit"="M1: Logit","Brand-Nested"="M2: Brand-Nested","CLIP-Nested"="M3: CLIP-Nested")
+brand_order <- c("All","hello","Colgate")
+
+rmse_wide <- dcast(rmse_dt,
+                   brand ~ model,
+                   value.var = c("rmse_merger","rmse_nomerger","mae_merger","mae_nomerger"))
+
+# Build a clean 3-row table: brand | M1 RMSE/MAE | M2 RMSE/MAE | M3 RMSE/MAE
+fmt_cell <- function(rmse, mae) sprintf("%.3f / %.3f", rmse, mae)
+
+rmse_clean <- data.table(
+  Brand = brand_order,
+  M1 = mapply(fmt_cell,
+    rmse_wide[match(brand_order, brand), rmse_merger_Logit],
+    rmse_wide[match(brand_order, brand), mae_merger_Logit]),
+  M2 = mapply(fmt_cell,
+    rmse_wide[match(brand_order, brand), `rmse_merger_Brand-Nested`],
+    rmse_wide[match(brand_order, brand), `mae_merger_Brand-Nested`]),
+  M3 = mapply(fmt_cell,
+    rmse_wide[match(brand_order, brand), `rmse_merger_CLIP-Nested`],
+    rmse_wide[match(brand_order, brand), `mae_merger_CLIP-Nested`])
+)
+
+kbl(rmse_clean,
+    col.names = c("Brand / Scope",
+                  "M1: Logit",
+                  "M2: Brand-Nested",
+                  "M3: CLIP-Nested"),
+    format   = tbl_fmt,
+    booktabs = TRUE,
+    escape   = FALSE,
+    caption  = "Model Fit: RMSE / MAE vs. Observed Prices (Post-Merger Quarters 2020Q1--2022Q3)",
+    align    = c("l","c","c","c")) |>
+  add_header_above(c(" " = 1, "RMSE / MAE (USD)" = 3), escape = FALSE) |>
+  kable_styling(
+    bootstrap_options = c("striped","hover","condensed"),
+    latex_options     = c("HOLD_position"),
+    font_size         = if (is_pdf) 10 else 13,
+    full_width        = if (is_pdf) TRUE else FALSE
+  ) |>
+  row_spec(1, bold = TRUE)
+```
+
+*Notes:* Each cell shows RMSE / MAE in USD against observed transaction prices. Nash (merger) prices are used as the model prediction. "All" = all 847 ASIN $\times$ quarter observations in the post-merger period (2020Q1--2022Q3); hello = 35 obs.; Colgate = 172 obs. Pre-merger marginal costs are held fixed in both Nash simulations.
