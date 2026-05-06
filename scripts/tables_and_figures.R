@@ -9,8 +9,13 @@
 # ============================================================================
 
 library(data.table); library(lubridate); library(ggplot2); library(ggrepel)
-setwd("/Users/brkuzn")
-out_dir <- "analysis_2704"
+
+# ── PATH CONFIG ───────────────────────────────────────────────────────────────
+if (!exists("BASE_DIR")) BASE_DIR <- "/Users/brkuzn"
+if (!exists("out_dir"))  out_dir  <- file.path(BASE_DIR, "analysis_2704")
+if (!exists("data_dir")) data_dir <- file.path(BASE_DIR, "clip-amazon-toothpaste-market", "data")
+dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+# ─────────────────────────────────────────────────────────────────────────────
 
 LAMBDA        <- 13.93
 TIME_CUTOFF   <- as.Date("2022-07-01")
@@ -22,13 +27,13 @@ import_brands       <- c("Sensodyne","SENSODYNE PRONAMEL","Parodontax","APAGARD"
 freight_crisis_qtrs <- c("2021Q3","2021Q4","2022Q1","2022Q2")
 
 # ── DATA ─────────────────────────────────────────────────────────────────────
-panel <- fread("asin_quarter_panel.csv")
+panel <- fread(file.path(data_dir, "asin_quarter_panel.csv"))
 panel[, month_date_dummy := as.Date(paste0(
   sub("Q.*","",quarter),"-",
   sprintf("%02d",(as.integer(sub(".*Q","",quarter))-1)*3+1),"-01"))]
 panel <- panel[month_date_dummy <= TIME_CUTOFF][, month_date_dummy := NULL]
 
-asin_chars <- fread("asin_characteristics.csv")
+asin_chars <- fread(file.path(data_dir, "asin_characteristics.csv"))
 panel <- merge(panel, asin_chars[, .(asin, pkg_size, is_import)], by="asin", all.x=TRUE)
 panel[is.na(pkg_size),  pkg_size  := median(panel$pkg_size,  na.rm=TRUE)]
 panel[is.na(is_import), is_import := 0]
@@ -45,7 +50,7 @@ panel[, is_freight_crisis    := as.numeric(quarter %in% freight_crisis_qtrs)]
 panel[, import_freight_shock := is_import * is_freight_crisis]
 
 # CLIP clusters
-pcs_raw <- fread("asin_joint_pcs_complete.csv")
+pcs_raw <- fread(file.path(data_dir, "asin_joint_pcs_complete.csv"))
 pcs_raw <- pcs_raw[asin %in% panel$asin]
 set.seed(42)
 km6 <- kmeans(as.matrix(pcs_raw[, PC_COLS, with=FALSE]),

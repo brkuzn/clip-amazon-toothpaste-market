@@ -11,8 +11,13 @@
 # K=6 must reproduce: rho*=0.60, RSS drop=6.7%, hello=+0.591%
 # ============================================================================
 library(data.table); library(lubridate); library(cluster)
-setwd("/Users/brkuzn")
-out_dir <- "analysis_2704"
+
+# ── PATH CONFIG ───────────────────────────────────────────────────────────────
+if (!exists("BASE_DIR")) BASE_DIR <- "/Users/brkuzn"
+if (!exists("out_dir"))  out_dir  <- file.path(BASE_DIR, "analysis_2704")
+if (!exists("data_dir")) data_dir <- file.path(BASE_DIR, "clip-amazon-toothpaste-market", "data")
+dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+# ─────────────────────────────────────────────────────────────────────────────
 
 # ── CONSTANTS (identical to blp_three_models.R) ──────────────────────────────
 LAMBDA        <- 13.93
@@ -33,13 +38,13 @@ freight_crisis_qtrs <- c("2021Q3","2021Q4","2022Q1","2022Q2")
 
 # ── BUILD PANEL (once) ───────────────────────────────────────────────────────
 cat("Loading data...\n")
-panel <- fread("asin_quarter_panel.csv")
+panel <- fread(file.path(data_dir, "asin_quarter_panel.csv"))
 panel[, month_date_dummy := as.Date(paste0(
   sub("Q.*","",quarter),"-",
   sprintf("%02d",(as.integer(sub(".*Q","",quarter))-1)*3+1),"-01"))]
 panel <- panel[month_date_dummy <= TIME_CUTOFF][, month_date_dummy := NULL]
 
-asin_chars <- fread("asin_characteristics.csv")
+asin_chars <- fread(file.path(data_dir, "asin_characteristics.csv"))
 panel <- merge(panel, asin_chars[, .(asin, pkg_size, is_import)], by="asin", all.x=TRUE)
 panel[is.na(pkg_size),  pkg_size  := median(panel$pkg_size,  na.rm=TRUE)]
 panel[is.na(is_import), is_import := 0]
@@ -71,7 +76,7 @@ qtrs <- sort(unique(panel$quarter))
 panel[, market_ids := match(quarter, qtrs)]
 
 # CLIP PC matrix (for clustering)
-pcs_raw <- fread("asin_joint_pcs_complete.csv")
+pcs_raw <- fread(file.path(data_dir, "asin_joint_pcs_complete.csv"))
 pcs_raw <- pcs_raw[asin %in% panel$asin]
 pc_mat  <- as.matrix(pcs_raw[, PC_COLS, with=FALSE])
 

@@ -38,8 +38,15 @@
 # ============================================================================
 
 library(data.table); library(lubridate)
-setwd("/Users/brkuzn")
-out_dir <- "analysis_2704"
+
+# ── PATH CONFIG ───────────────────────────────────────────────────────────────
+# When sourced from blp_thesis.Rmd, BASE_DIR / out_dir / data_dir are already
+# defined in the parent environment.  When run standalone, fall back to defaults.
+if (!exists("BASE_DIR")) BASE_DIR <- "/Users/brkuzn"
+if (!exists("out_dir"))  out_dir  <- file.path(BASE_DIR, "analysis_2704")
+if (!exists("data_dir")) data_dir <- file.path(BASE_DIR, "clip-amazon-toothpaste-market", "data")
+dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+# ─────────────────────────────────────────────────────────────────────────────
 
 # ── PARAMETERS ────────────────────────────────────────────────────────────────
 LAMBDA        <- 13.93
@@ -66,7 +73,7 @@ cat("  M1: Logit  |  M2: Brand-Nested  |  M3: CLIP-Nested\n")
 cat(strrep("=",72),"\n\n")
 
 # ── SECTION 1: DATA LOADING ───────────────────────────────────────────────────
-panel <- fread("asin_quarter_panel.csv")
+panel <- fread(file.path(data_dir, "asin_quarter_panel.csv"))
 panel[, month_date_dummy := as.Date(paste0(
   sub("Q.*","",quarter),"-",
   sprintf("%02d",(as.integer(sub(".*Q","",quarter))-1)*3+1),"-01"))]
@@ -75,7 +82,7 @@ panel <- panel[month_date_dummy <= TIME_CUTOFF][, month_date_dummy := NULL]
 # Pre-computed ASIN characteristics (pkg_size, is_import) — replaces the raw
 # 148 MB choice_set_with_state_and_region.csv (not redistributed).
 # Regenerate with: scripts/build_asin_characteristics.R
-asin_chars <- fread("asin_characteristics.csv")
+asin_chars <- fread(file.path(data_dir, "asin_characteristics.csv"))
 panel <- merge(panel, asin_chars[, .(asin, pkg_size, is_import)], by="asin", all.x=TRUE)
 panel[is.na(pkg_size),  pkg_size  := median(panel[["pkg_size"]],  na.rm=TRUE)]
 panel[is.na(is_import), is_import := 0]
@@ -100,7 +107,7 @@ cat(sprintf("Panel: %d obs | %d ASINs | %d quarters\n\n",
     nrow(panel), uniqueN(panel$asin), uniqueN(panel$quarter)))
 
 # ── SECTION 2: CLIP CLUSTERS (K=5) ───────────────────────────────────────────
-pcs_raw <- fread("asin_joint_pcs_complete.csv")
+pcs_raw <- fread(file.path(data_dir, "asin_joint_pcs_complete.csv"))
 pcs_raw <- pcs_raw[asin %in% panel$asin]
 set.seed(42)
 km6 <- kmeans(as.matrix(pcs_raw[, PC_COLS, with=FALSE]),
