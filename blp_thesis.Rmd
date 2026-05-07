@@ -567,7 +567,7 @@ Bijmolt, T.H.A., van Heerde, H.J., \& Pieters, R.G.M. (2005). New empirical gene
 
 Berry, S.T. (1994). Estimating discrete-choice models of product differentiation. *RAND Journal of Economics*, 25(2), 242--262.
 
-Conlon, C., \& Gortmaker, J. (2020). Best practices for differentiated products demand estimation with PyBLP. *RAND Journal of Economics*, 51(4), 1108--1145.
+Conlon, C., \& Gortmaker, J. (2020). Best practices for differentiated products demand estimation with PyBLP. *RAND Journal of Economics*, 51(4), 1108--1161.
 
 Draganska, M., \& Jain, D.C. (2006). Consumer preferences and product-line pricing strategies: An empirical analysis. *Marketing Science*, 25(2), 164--174.
 
