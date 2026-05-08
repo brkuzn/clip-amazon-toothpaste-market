@@ -56,7 +56,16 @@ clip-amazon-toothpaste-market/
 │       ├── model1_coefficients.csv
 │       ├── model2_coefficients.csv
 │       └── model3_coefficients.csv
-├── blp_thesis.Rmd                     # Self-contained R Markdown → compiles full PDF
+├── papers/                            # Reference PDFs for all cited works
+│   ├── Berry1994.pdf
+│   ├── JMR_2005_BijmoltVanHeerdePieters.pdf
+│   ├── Consumer_Preferences_and_Product-Line_Pricing_Stra.pdf
+│   ├── nevo2000.pdf
+│   ├── nevo-2001-cereal.pdf
+│   ├── pyblp_2020_conlon_gortmaker.pdf
+│   ├── learning_transferable_visual_models.pdf
+│   └── compiani_estimating_demand.pdf  # Related work (not yet cited)
+├── blp_thesis.Rmd                     # Self-contained R Markdown → compiles full PDF + HTML
 ├── blp_thesis.pdf                     # Pre-compiled 7-page thesis PDF
 └── blp_three_models.html              # Interactive results dashboard (open in browser)
 ```
@@ -87,10 +96,13 @@ R ≥ 4.2 and [TinyTeX](https://yihui.org/tinytex/) (or another LaTeX distributi
 1. Open `blp_thesis.Rmd` in RStudio and click **Knit**, or run:
 
 ```r
-# HTML output — no LaTeX needed, renders in minutes
+# Render both HTML and PDF in one call (recommended)
+rmarkdown::render("blp_thesis.Rmd", output_format = "all")
+
+# HTML only — no LaTeX needed, renders in minutes
 rmarkdown::render("blp_thesis.Rmd", output_format = "html_document")
 
-# PDF output — requires TinyTeX or another LaTeX distribution (≈ 25–30 min first run)
+# PDF only — requires TinyTeX or another LaTeX distribution
 rmarkdown::render("blp_thesis.Rmd", output_format = "pdf_document")
 ```
 
