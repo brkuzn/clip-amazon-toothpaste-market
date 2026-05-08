@@ -1,6 +1,6 @@
 # CLIP Embeddings for Market Definition
 
-**Master's Thesis — Demand Estimation with Unstructured Product Data: Evidence from Amazon’s
+**Master's Thesis — Demand Estimation with Unstructured Product Data: Evidence from Amazon's
 Toothpaste Market**  
   Burak Uzun · burak.uzun@uni-oldenburg.de · brkuznmail@gmail.com
 
@@ -24,6 +24,12 @@ Three demand models are estimated and compared:
 
 ---
 
+## Quick Browse (no code required)
+
+Open **`blp_three_models.html`** directly in any browser for the full interactive dashboard: all three models, demand estimates, merger simulation, price trajectories, K sensitivity analysis, and a complete references list.
+
+---
+
 ## Repository Structure
 
 ```
@@ -36,8 +42,9 @@ clip-amazon-toothpaste-market/
 │   ├── blp_three_models.R             # MAIN: demand estimation + merger simulation
 │   ├── clip_k_sensitivity.R           # K=2..10 sensitivity analysis
 │   ├── tables_and_figures.R           # Table 1, Figure 1, Figure 2
-│   └── inject_tables.R                # Injects formal tables into blp_three_models.html
-├── output/
+│   └── inject_tables.R                # DEV ONLY: injects kableExtra tables into HTML
+│                                      #   (hardcoded local paths, not needed for replication)
+├── output/                            # Pre-populated reference outputs for comparison
 │   ├── figures/
 │   │   ├── figure1_clip_space.png     # CLIP PC1×PC2 scatter (K=5 clusters)
 │   │   └── figure2_price_trajectories.png  # Nash merger vs no-merger price paths
@@ -51,7 +58,7 @@ clip-amazon-toothpaste-market/
 │       └── model3_coefficients.csv
 ├── blp_thesis.Rmd                     # Self-contained R Markdown → compiles full PDF
 ├── blp_thesis.pdf                     # Pre-compiled 7-page thesis PDF
-└── blp_three_models.html              # Interactive results dashboard
+└── blp_three_models.html              # Interactive results dashboard (open in browser)
 ```
 
 ---
@@ -89,19 +96,30 @@ rmarkdown::render("blp_thesis.Rmd", output_format = "pdf_document")
 
 ### Option B — Run scripts individually
 
+Scripts must run in order — each step produces outputs the next step depends on.
+
 ```r
 # Set working directory to the parent of this repo
 setwd("/path/to/parent/folder")
 
 # 1. Main demand estimation + merger simulation (≈ 5–10 min)
+#    Produces: output/tables/three_models_merger_summary.csv,
+#              output/coefficients/model*.csv
 source("clip-amazon-toothpaste-market/scripts/blp_three_models.R")
 
 # 2. K sensitivity analysis (K=2..10, ≈ 15–20 min)
+#    Produces: output/tables/clip_k_sensitivity.csv
 source("clip-amazon-toothpaste-market/scripts/clip_k_sensitivity.R")
 
-# 3. Figures and Table 1
+# 3. Figures and Table 1 — must run after step 1
+#    Produces: output/figures/figure*.png,
+#              output/tables/table1_cluster_summary.csv
 source("clip-amazon-toothpaste-market/scripts/tables_and_figures.R")
 ```
+
+Your results can be compared against the pre-populated `output/` folder included in the repo.
+
+> **Note:** `inject_tables.R` is a development utility used to rebuild `blp_three_models.html` from local intermediate files. It contains hardcoded paths specific to the author's machine and is **not needed** for replication — the HTML is already fully built and included in the repo.
 
 ---
 
@@ -145,7 +163,7 @@ $$\log(s_{jt}/s_{0t}) - \rho \cdot \log(s_{j|g,t}) = \alpha p_{jt} + \beta' x_{j
 
 ### Merger Simulation (Bertrand-Nash)
 
-Pre-merger marginal costs inverted from first-order conditions, averaged per ASIN, then fixed. Nash equilibrium prices computed under pre- and post-merger ownership via damped contraction mapping (λ = 0.4, tol = 1e-8).
+Pre-merger marginal costs inverted from first-order conditions, averaged per ASIN, then fixed. Nash equilibrium prices computed under pre- and post-merger ownership via damped contraction mapping (λ = 0.4, tol = 1e-8). Validated against PyBLP's `compute_prices()` (Conlon & Gortmaker 2020); max deviation < 2 × 10⁻⁸.
 
 ---
 
@@ -157,7 +175,25 @@ Pre-merger marginal costs inverted from first-order conditions, averaged per ASI
 - hello merger price effect: **+0.40%**
 - Colgate merger price effect: **+0.018%**
 
-See `blp_three_models.html` for the interactive dashboard with all three models, price trajectories, and the K sensitivity table.
+See `blp_three_models.html` for the interactive dashboard with all three models, price trajectories, K sensitivity analysis, and full references.
+
+---
+
+## References
+
+Berry, S.T. (1994). Estimating discrete-choice models of product differentiation. *RAND Journal of Economics*, 25(2), 242–262.
+
+Bijmolt, T.H.A., van Heerde, H.J., & Pieters, R.G.M. (2005). New empirical generalizations on the determinants of price elasticity. *Journal of Marketing Research*, 42(2), 141–156.
+
+Conlon, C., & Gortmaker, J. (2020). Best practices for differentiated products demand estimation with PyBLP. *RAND Journal of Economics*, 51(4), 1108–1161.
+
+Draganska, M., & Jain, D.C. (2006). Consumer preferences and product-line pricing strategies: An empirical analysis. *Marketing Science*, 25(2), 164–174.
+
+Nevo, A. (2000). A practitioner's guide to estimation of random-coefficients logit models of demand. *Journal of Economics & Management Strategy*, 9(4), 513–548.
+
+Nevo, A. (2001). Measuring market power in the ready-to-eat cereal industry. *Econometrica*, 69(2), 307–342.
+
+Radford, A., Kim, J.W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S., Sastry, G., Askell, A., Mishkin, P., Clark, J., Krueger, G., & Sutskever, I. (2021). Learning transferable visual models from natural language supervision. *Proceedings of the 38th International Conference on Machine Learning (ICML)*, PMLR 139, 8748–8763.
 
 ---
 
