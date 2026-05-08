@@ -65,6 +65,9 @@ clip-amazon-toothpaste-market/
 
 ## How to Reproduce
 
+> **Option A and Option B are independent — pick one, not both.**  
+> Option A (knit Rmd) runs all scripts internally. Option B runs scripts directly without the Rmd.
+
 ### Requirements
 
 ```r
@@ -73,43 +76,46 @@ install.packages(c("data.table", "lubridate", "cluster",
                    "knitr", "rmarkdown", "kableExtra"))
 ```
 
-R ≥ 4.2 and [TinyTeX](https://yihui.org/tinytex/) (or another LaTeX distribution) for PDF output.
+R ≥ 4.2 and [TinyTeX](https://yihui.org/tinytex/) (or another LaTeX distribution) for PDF output only.
 
 ### Option A — Knit the thesis Rmd (recommended)
 
-`blp_thesis.Rmd` is self-contained: it sources all three scripts, runs the full pipeline, and renders every table and figure into a single PDF. **No path configuration needed** — the Rmd auto-detects its own location on any OS and any folder name.
+`blp_thesis.Rmd` is fully self-contained. It **automatically sources all three scripts**, runs the complete pipeline from raw data, and renders every table and figure. You do **not** need to run any scripts separately beforehand.
 
-1. Open `blp_thesis.Rmd` in RStudio (or any R environment).
+**No path configuration needed** — the Rmd auto-detects its own location on Windows, Mac, and Linux, regardless of what the repo folder is named (e.g. `clip-amazon-toothpaste-market-main/` from a GitHub ZIP download works fine).
 
-2. Knit to PDF (≈ 25–30 min on first run; cached thereafter):
+1. Open `blp_thesis.Rmd` in RStudio and click **Knit**, or run:
 
 ```r
+# HTML output — no LaTeX needed, renders in minutes
+rmarkdown::render("blp_thesis.Rmd", output_format = "html_document")
+
+# PDF output — requires TinyTeX or another LaTeX distribution (≈ 25–30 min first run)
 rmarkdown::render("blp_thesis.Rmd", output_format = "pdf_document")
 ```
 
-Or knit to HTML first (no LaTeX required, much faster):
+On the first knit the computation chunk runs all three scripts (≈ 25–30 min total). Subsequent knits are fast — results are cached and only recompute if a script file changes.
+
+### Option B — Run scripts directly (no Rmd)
+
+Use this if you want to inspect or modify individual estimation steps without knitting a document. Scripts auto-detect their own location — **no `setwd()` needed**, works on any OS and folder name.
+
+Run in this order (each step's output is required by the next):
 
 ```r
-rmarkdown::render("blp_thesis.Rmd", output_format = "html_document")
-```
-
-### Option B — Run scripts individually
-
-Scripts auto-detect their own location — no `setwd()` needed. Must run in order.
-
-```r
-# 1. Main demand estimation + merger simulation (≈ 5–10 min)
-#    Produces: output/tables/three_models_merger_summary.csv,
-#              output/coefficients/model*.csv
+# 1. Demand estimation + merger simulation (≈ 5–10 min)
+#    Writes: output/tables/three_models_merger_summary.csv
+#            output/coefficients/model{1,2,3}_coefficients.csv
 source("/path/to/repo/scripts/blp_three_models.R")
 
-# 2. K sensitivity analysis (K=2..10, ≈ 15–20 min)
-#    Produces: output/tables/clip_k_sensitivity.csv
+# 2. K sensitivity analysis — K=2..10 (≈ 15–20 min)
+#    Writes: output/tables/clip_k_sensitivity.csv
 source("/path/to/repo/scripts/clip_k_sensitivity.R")
 
-# 3. Figures and Table 1 — must run after step 1
-#    Produces: output/figures/figure*.png,
-#              output/tables/table1_cluster_summary.csv
+# 3. Figures and Table 1 (< 1 min) — requires step 1 output
+#    Writes: output/figures/figure1_clip_space.png
+#            output/figures/figure2_price_trajectories.png
+#            output/tables/table1_cluster_summary.csv
 source("/path/to/repo/scripts/tables_and_figures.R")
 ```
 
