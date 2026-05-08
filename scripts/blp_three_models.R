@@ -30,7 +30,7 @@
 #   Mean utility: V_j(p) = δ_j_pre + α·(p_j − p_pre_j)
 #   Shares from nested-logit formula at each iteration
 #
-# OUTPUT (all in analysis_2704/):
+# OUTPUT (all in output/):
 #   three_models_formulas.txt
 #   model{1,2,3}_coefficients.csv
 #   model{1,2,3}_asin_results.csv    ← ASIN×quarter: share, mc, elas, pre/post price
