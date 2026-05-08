@@ -5,9 +5,7 @@ Toothpaste Market**
   Burak Uzun · burak.uzun@uni-oldenburg.de · brkuznmail@gmail.com
 
 > *Does the hello → Colgate merger (2020Q1) raise toothpaste prices on Amazon?*  
-> This repo replicates the full BLP demand estimation and Bertrand-Nash merger simulation  
-> using CLIP image+text embeddings to define product nesting in a nested-logit framework.
-
+> This repo replicates the full work, using CLIP image+text embeddings to define product nesting in a nested-logit framework with Bertrand-Nash merger simulation
 ---
 
 ## Overview
