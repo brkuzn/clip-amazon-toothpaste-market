@@ -77,16 +77,9 @@ R ≥ 4.2 and [TinyTeX](https://yihui.org/tinytex/) (or another LaTeX distributi
 
 ### Option A — Knit the thesis Rmd (recommended)
 
-`blp_thesis.Rmd` is self-contained: it sources all three scripts, runs the full pipeline, and renders every table and figure into a single PDF.
+`blp_thesis.Rmd` is self-contained: it sources all three scripts, runs the full pipeline, and renders every table and figure into a single PDF. **No path configuration needed** — the Rmd auto-detects its own location on any OS and any folder name.
 
-1. Open `blp_thesis.Rmd` and set `BASE_DIR` at the top of the `setup` chunk to the **parent folder** that contains this repo:
-
-```r
-# ── USER CONFIG ───────────────────────────────
-BASE_DIR <- "/path/to/parent/folder"
-# e.g. if the repo lives at /home/you/clip-amazon-toothpaste-market/
-# then BASE_DIR <- "/home/you"
-```
+1. Open `blp_thesis.Rmd` in RStudio (or any R environment).
 
 2. Knit to PDF (≈ 25–30 min on first run; cached thereafter):
 
@@ -94,27 +87,30 @@ BASE_DIR <- "/path/to/parent/folder"
 rmarkdown::render("blp_thesis.Rmd", output_format = "pdf_document")
 ```
 
-### Option B — Run scripts individually
-
-Scripts must run in order — each step produces outputs the next step depends on.
+Or knit to HTML first (no LaTeX required, much faster):
 
 ```r
-# Set working directory to the parent of this repo
-setwd("/path/to/parent/folder")
+rmarkdown::render("blp_thesis.Rmd", output_format = "html_document")
+```
 
+### Option B — Run scripts individually
+
+Scripts auto-detect their own location — no `setwd()` needed. Must run in order.
+
+```r
 # 1. Main demand estimation + merger simulation (≈ 5–10 min)
 #    Produces: output/tables/three_models_merger_summary.csv,
 #              output/coefficients/model*.csv
-source("clip-amazon-toothpaste-market/scripts/blp_three_models.R")
+source("/path/to/repo/scripts/blp_three_models.R")
 
 # 2. K sensitivity analysis (K=2..10, ≈ 15–20 min)
 #    Produces: output/tables/clip_k_sensitivity.csv
-source("clip-amazon-toothpaste-market/scripts/clip_k_sensitivity.R")
+source("/path/to/repo/scripts/clip_k_sensitivity.R")
 
 # 3. Figures and Table 1 — must run after step 1
 #    Produces: output/figures/figure*.png,
 #              output/tables/table1_cluster_summary.csv
-source("clip-amazon-toothpaste-market/scripts/tables_and_figures.R")
+source("/path/to/repo/scripts/tables_and_figures.R")
 ```
 
 Your results can be compared against the pre-populated `output/` folder included in the repo.

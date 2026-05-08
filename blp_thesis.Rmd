@@ -39,19 +39,26 @@ knitr::opts_chunk$set(
   fig.pos = "H"
 )
 
-# ── USER CONFIG ───────────────────────────────────────────────────────────────
-# Set BASE_DIR to the parent folder that contains BOTH:
-#   clip-amazon-toothpaste-market/   (the cloned repo with scripts/ and data/)
-#   analysis_2704/                   (output folder; will be created if absent)
-# Example: BASE_DIR <- "/home/yourname"
-BASE_DIR   <- "/Users/brkuzn"
-out_dir    <- file.path(BASE_DIR, "analysis_2704")
-script_dir <- file.path(BASE_DIR, "clip-amazon-toothpaste-market/scripts")
-data_dir   <- file.path(BASE_DIR, "clip-amazon-toothpaste-market/data")
+# ── AUTO-DETECT PATHS ─────────────────────────────────────────────────────────
+# No manual configuration needed.
+# Works on Windows, Mac, and Linux regardless of repo folder name
+# (e.g. clip-amazon-toothpaste-market/ or clip-amazon-toothpaste-market-main/).
+# The Rmd must live in the repo root directory.
+.rmd_path <- tryCatch(
+  normalizePath(knitr::current_input(dir = TRUE), winslash = "/"),
+  error = function(e) tryCatch(
+    normalizePath(rstudioapi::getSourceEditorContext()$path, winslash = "/"),
+    error = function(e) normalizePath(getwd(), winslash = "/")
+  )
+)
+repo_dir   <- dirname(.rmd_path)
+script_dir <- file.path(repo_dir, "scripts")
+data_dir   <- file.path(repo_dir, "data")
+out_dir    <- file.path(repo_dir, "output")
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 # ─────────────────────────────────────────────────────────────────────────────
 
-knitr::opts_knit$set(root.dir = BASE_DIR)
+knitr::opts_knit$set(root.dir = repo_dir)
 
 # Detect output format (html or latex)
 is_pdf  <- knitr::is_latex_output()
@@ -66,13 +73,13 @@ library(patchwork)
 library(lubridate)
 library(cluster)   # needed by clip_k_sensitivity.R
 
-setwd(BASE_DIR)
+setwd(repo_dir)
 ```
 
-```{r computation, include=FALSE, cache=TRUE, cache.extra=tools::md5sum(file.path(BASE_DIR, "clip-amazon-toothpaste-market/scripts", c("blp_three_models.R","tables_and_figures.R","clip_k_sensitivity.R")))}
+```{r computation, include=FALSE, cache=TRUE, cache.extra=tools::md5sum(file.path(script_dir, c("blp_three_models.R","tables_and_figures.R","clip_k_sensitivity.R")))}
 # ── Run all three computation scripts ────────────────────────────────────────
 # Each script is self-contained: reads raw data, runs estimation/simulation,
-# and writes output CSVs to analysis_2704/.  cache=TRUE means this block only
+# and writes output CSVs to output/.  cache=TRUE means this block only
 # re-executes when the scripts themselves change (tracked via cache.extra MD5).
 #
 # Expected runtimes (approximate):

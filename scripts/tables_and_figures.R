@@ -11,9 +11,31 @@
 library(data.table); library(lubridate); library(ggplot2); library(ggrepel)
 
 # ── PATH CONFIG ───────────────────────────────────────────────────────────────
-if (!exists("BASE_DIR")) BASE_DIR <- "/Users/brkuzn"
-if (!exists("out_dir"))  out_dir  <- file.path(BASE_DIR, "analysis_2704")
-if (!exists("data_dir")) data_dir <- file.path(BASE_DIR, "clip-amazon-toothpaste-market", "data")
+# When sourced from blp_thesis.Rmd, repo_dir / out_dir / data_dir are already
+# defined.  When run standalone, auto-detect from this script's own location —
+# works on Windows, Mac, and Linux regardless of repo folder name.
+if (!exists("repo_dir")) {
+  .sf <- tryCatch(
+    normalizePath(sys.frame(1)$ofile, winslash = "/"),   # via source()
+    error = function(e) tryCatch(
+      normalizePath(rstudioapi::getSourceEditorContext()$path, winslash = "/"),
+      error = function(e) ""
+    )
+  )
+  if (nzchar(.sf)) {
+    repo_dir <- dirname(dirname(.sf))           # scripts/ -> repo root
+  } else {
+    .cands <- c("clip-amazon-toothpaste-market",
+                "clip-amazon-toothpaste-market-main")
+    .found <- Filter(function(d) dir.exists(file.path(getwd(), d)), .cands)
+    repo_dir <- normalizePath(
+      if (length(.found)) file.path(getwd(), .found[1]) else getwd(),
+      winslash = "/"
+    )
+  }
+}
+if (!exists("data_dir")) data_dir <- file.path(repo_dir, "data")
+if (!exists("out_dir"))  out_dir  <- file.path(repo_dir, "output")
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 # ─────────────────────────────────────────────────────────────────────────────
 
