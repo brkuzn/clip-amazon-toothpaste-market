@@ -3,8 +3,7 @@
 **Master's Thesis — Demand Estimation with Unstructured Product Data: Evidence from Amazon's
 Toothpaste Market**  
   Burak Uzun · burak.uzun@uni-oldenburg.de · brkuznmail@gmail.com
-
-> *Does the hello → Colgate merger (2020Q1) raise toothpaste prices on Amazon?*  
+ 
 > This repo replicates the full work, using CLIP image+text embeddings to define product nesting in a nested-logit framework with Bertrand-Nash merger simulation
 ---
 
