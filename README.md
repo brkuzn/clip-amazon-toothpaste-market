@@ -66,7 +66,8 @@ clip-amazon-toothpaste-market/
 │   ├── learning_transferable_visual_models.pdf
 │   └── compiani_estimating_demand.pdf  # Related work (not yet cited)
 ├── blp_thesis.Rmd                     # Self-contained R Markdown → compiles full PDF + HTML
-├── blp_thesis.pdf                     # Pre-compiled 7-page thesis PDF
+├── blp_thesis.pdf                   # 7-page thesis PDF
+└── blp_thesis.html                   # 7-page thesis html
 └── blp_three_models.html              # Interactive results dashboard (open in browser)
 ```
 
@@ -216,8 +217,8 @@ Radford, A., Kim, J.W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S., Sastry, G
 If you use this code or data, please cite:
 
 ```
-Uzun, B. (2026). CLIP Embeddings for Market Definition:
-Evidence from the Amazon Toothpaste Market.
+Uzun, B. (2026). Demand Estimation with Unstructured Product Data: Evidence from Amazon's
+Toothpaste Market
 Master's Thesis, Carl von Ossietzky Universität Oldenburg.
 https://github.com/brkuzn/clip-amazon-toothpaste-market
 ```
