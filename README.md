@@ -2,7 +2,7 @@
 
 **Master's Thesis — Demand Estimation with Unstructured Product Data: Evidence from Amazon's
 Toothpaste Market**  
-  Burak Uzun · burak.uzun@uni-oldenburg.de · brkuznmail@gmail.com
+  Burak Uzun, Cristian Huse · burak.uzun@uni-oldenburg.de · cristian.huse@uni-oldenburg.de
  
 > This repo replicates the full work, using CLIP image+text embeddings to define product nesting in a nested-logit framework with Bertrand-Nash merger simulation
 ---
