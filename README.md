@@ -1,6 +1,6 @@
 # CLIP Embeddings for Market Definition
 
-**Master's Thesis — Demand Estimation with Unstructured Product Data: Evidence from Amazon's
+**Demand Estimation with Unstructured Product Data: Evidence from Amazon's
 Toothpaste Market**  
   Burak Uzun, Cristian Huse · burak.uzun@uni-oldenburg.de · cristian.huse@uni-oldenburg.de
  
