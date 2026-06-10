@@ -155,7 +155,7 @@ hello Products LLC, founded in 2012, positioned itself as a "naturally friendly"
 
 ## Data Sources
 
-The analysis combines two data sources. Household-level purchase histories come from the Open E-commerce 1.0 dataset (Berke et al. 2024), a crowdsourced panel of 5,027 US Amazon consumers with more than 1.8 million transaction records, distributed through Harvard Dataverse. The dataset has been validated by its authors against public Amazon sales data: aggregate expenditure in the panel correlates with published Amazon revenues at Pearson $r = 0.978$ ($p < 0.001$; Berke et al. 2024). The toothpaste purchase records extracted for this study span January 2018 to March 2023 and include order timestamps, prices, and household identifiers; household demographics are available in the source data but enter the analysis only through the count of unique purchasing households per cell. Product-level metadata -- titles, benefit descriptions, and image URLs for every purchased ASIN -- were collected via Keepa and parsed with a rule-based extraction script (brand matching against a curated brand list, keyword-based benefit extraction, and unit-aware package-size parsing).
+The analysis combines two data sources. Household-level purchase histories come from the Open E-commerce 1.0 dataset (Berke et al. 2024), a crowdsourced panel of 5,027 US Amazon consumers with more than 1.8 million transaction records, distributed through Harvard Dataverse. The dataset has been validated by its authors against public Amazon sales data: aggregate expenditure in the panel correlates with published Amazon revenues at Pearson $r = 0.978$ ($p < 0.001$; Berke et al. 2024). The toothpaste purchase records extracted for this study span January 2018 to March 2023 and include order timestamps, prices, and household identifiers; household demographics are available in the source data but enter the analysis only through the count of unique purchasing households per cell. Product-level metadata -- titles, benefit descriptions, and image URLs for every purchased ASIN -- were retrieved programmatically through the Keepa API (a subscription-based Amazon data service) and parsed with a rule-based extraction script (brand matching against a curated brand list, keyword-based benefit extraction, and unit-aware package-size parsing). Prices are deflated to real terms using the CPI before aggregation; the panel's quarterly price for each ASIN is the mean deflated transaction price across that quarter's purchases.
 
 ## Sample Construction
 
@@ -213,7 +213,7 @@ kbl(tabP,
     "12 brand groups. Price is the quarterly mean deflated transaction price per ASIN. ",
     "Market share uses market size M_t = (1 + 13.93) x total quarterly purchases ",
     "(outside-good share approx. 93%)."
-  ), escape = TRUE, general_title = "Notes: ")
+  ), escape = TRUE, threeparttable = TRUE, general_title = "Notes: ")
 ```
 
 ## Market Definition
@@ -396,7 +396,7 @@ kbl(t1,
     font_size         = if (is_pdf) 8 else 13,
     full_width        = FALSE
   ) |>
-  footnote(general = t1_footnote, escape = TRUE, general_title = "Notes: ")
+  footnote(general = t1_footnote, escape = TRUE, threeparttable = TRUE, general_title = "Notes: ")
 ```
 
 \vspace{1em}
@@ -504,14 +504,14 @@ kbl(tab2,
     align     = c("l","c","c","c")) |>
   kable_styling(
     bootstrap_options = c("striped","hover","condensed"),
-    latex_options     = c("HOLD_position", "scale_down"),
+    latex_options     = c("HOLD_position"),
     font_size         = if (is_pdf) 9 else 13,
     full_width        = FALSE
   ) |>
   row_spec(1, bold = TRUE, background = "#EEF2FF") |>
   row_spec(n_main, extra_css = "border-bottom: 2px solid #aaa;",
            hline_after = TRUE) |>
-  footnote(general = gen_note, escape = TRUE, general_title = "Notes: ")
+  footnote(general = gen_note, escape = TRUE, threeparttable = TRUE, general_title = "Notes: ")
 ```
 
 \vspace{1em}
@@ -563,7 +563,7 @@ kbl(tab_be,
     "Elasticity formula: e_jj = alpha p_j [1/(1-rho) - rho s_j|g/(1-rho) - s_j], ",
     "with alpha = -0.310 (calibrated) and rho* = 0 (M1), 0.35 (M2), 0.67 (M3). ",
     "Rows sorted by M3 elasticity; bold = merger parties."
-  ), escape = TRUE, general_title = "Notes: ")
+  ), escape = TRUE, threeparttable = TRUE, general_title = "Notes: ")
 ```
 
 \vspace{1em}
@@ -629,7 +629,7 @@ kbl(tab3_flat,
   row_spec(party_rows, bold = TRUE) |>
   kable_styling(
     bootstrap_options = c("striped","hover","condensed"),
-    latex_options     = c("HOLD_position", "scale_down"),
+    latex_options     = c("HOLD_position"),
     font_size         = if (is_pdf) 8 else 13,
     full_width        = FALSE
   ) |>
@@ -642,8 +642,9 @@ kbl(tab3_flat,
       "Dp = Nash (post) minus Nash (pre). ",
       "MC inverted from pre-merger FOC and held fixed."
     ),
-    escape        = TRUE,
-    general_title = "Notes: "
+    escape         = TRUE,
+    threeparttable = TRUE,
+    general_title  = "Notes: "
   )
 ```
 
@@ -703,7 +704,7 @@ kbl(tab4,
     align     = c("l", "c", "c", "c", "c", "c", "c", "c")) |>
   kable_styling(
     bootstrap_options = c("striped", "hover", "condensed"),
-    latex_options     = c("HOLD_position", "scale_down"),
+    latex_options     = c("HOLD_position"),
     font_size         = if (is_pdf) 9 else 13,
     full_width        = FALSE
   ) |>
@@ -720,8 +721,9 @@ kbl(tab4,
       "hello / Colgate Dp = average post-merger Nash price effect. ",
       "Bold/green row = preferred specification."
     ),
-    escape        = TRUE,
-    general_title = "Notes: "
+    escape         = TRUE,
+    threeparttable = TRUE,
+    general_title  = "Notes: "
   )
 ```
 
@@ -979,7 +981,7 @@ kbl(k_tbl,
     align     = c("c","r","r","c","r","r","r","r")) |>
   kable_styling(
     bootstrap_options = c("striped","hover","condensed"),
-    latex_options     = c("HOLD_position", "scale_down"),
+    latex_options     = c("HOLD_position"),
     font_size         = if (is_pdf) 8 else 13,
     full_width        = FALSE
   ) |>

@@ -1907,10 +1907,14 @@ span January 2018 to March 2023 and include order timestamps, prices,
 and household identifiers; household demographics are available in the
 source data but enter the analysis only through the count of unique
 purchasing households per cell. Product-level metadata – titles, benefit
-descriptions, and image URLs for every purchased ASIN – were collected
-via Keepa and parsed with a rule-based extraction script (brand matching
+descriptions, and image URLs for every purchased ASIN – were retrieved
+programmatically through the Keepa API (a subscription-based Amazon data
+service) and parsed with a rule-based extraction script (brand matching
 against a curated brand list, keyword-based benefit extraction, and
-unit-aware package-size parsing).</p>
+unit-aware package-size parsing). Prices are deflated to real terms
+using the CPI before aggregation; the panel’s quarterly price for each
+ASIN is the mean deflated transaction price across that quarter’s
+purchases.</p>
 </div>
 <div id="sample-construction" class="section level2" number="3.3">
 <h2><span class="header-section-number">3.3</span> Sample
