@@ -507,10 +507,10 @@ if (is_pdf) {
   sym_notes   <- NULL
   gen_note    <- "*** p<0.01, ** p<0.05, * p<0.10. FEs by quarter. N=1,164. (a) calibrated alpha; (b) grid-searched rho*. Sections 4.2-4.3."
   summ_rows   <- data.table(
-    variable = c("Implied median $\\varepsilon$", "RSS drop vs $\\rho$=0"),
-    M1 = c("$-$2.62", "---"),
-    M2 = c("$\\approx -4.0$", "3.1\\%"),
-    M3 = c("$\\approx -7.9$", "8.1\\%")
+    variable = c("Quarter FEs", "Implied median $\\varepsilon$", "RSS drop vs $\\rho$=0"),
+    M1 = c("Yes", "$-$2.62", "---"),
+    M2 = c("Yes", "$\\approx -4.0$", "3.1\\%"),
+    M3 = c("Yes", "$\\approx -7.9$", "8.1\\%")
   )
   col_names_t2 <- c("Variable","M1: Logit ($\\rho$=0)",
                     "M2: Brand-Nested ($\\rho^*$=0.35)",
@@ -539,10 +539,10 @@ if (is_pdf) {
     "++ Grid-searched on {0, 0.01, ..., 0.90}; rho=0 fixed for M1."
   )
   summ_rows   <- data.table(
-    variable = c("Implied median elasticity", "RSS drop vs rho=0"),
-    M1 = c("-2.62", "--"),
-    M2 = c("approx -4.0", "3.1%"),
-    M3 = c("approx -7.9", "8.1%")
+    variable = c("Quarter FEs", "Implied median elasticity", "RSS drop vs rho=0"),
+    M1 = c("Yes", "-2.62", "--"),
+    M2 = c("Yes", "approx -4.0", "3.1%"),
+    M3 = c("Yes", "approx -7.9", "8.1%")
   )
   col_names_t2 <- c("Variable","M1: Logit (rho=0)",
                     "M2: Brand-Nested (rho*=0.35)",
