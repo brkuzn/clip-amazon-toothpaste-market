@@ -1,6 +1,6 @@
 ---
-title: "CLIP Embeddings as Product Characteristics in BLP Merger Simulation"
-subtitle: "Evidence from the hello→Colgate Acquisition in the US Toothpaste Market"
+title: "Demand Estimation with Unstructured Product Data"
+subtitle: "Evidence from Amazon's Toothpaste Market"
 author: "Burak Uzun"
 date: "`r format(Sys.Date(), '%B %Y')`"
 abstract: |
@@ -120,11 +120,13 @@ RHO_M3     <- 0.67
 
 # Introduction
 
-Prospective merger review rests on a counterfactual question: how much would prices rise if two competitors came under common ownership? The answer depends almost entirely on how closely the merging parties' products substitute for one another, and substitution patterns are, in turn, dictated by the structure the analyst imposes on demand. In nested-logit models -- still the workhorse of applied antitrust simulation -- that structure is the nest assignment. Conventional practice builds nests from coarse observable labels, most commonly brand identity or hand-picked product segments. When those labels misrepresent how consumers actually perceive products, the resulting diversion ratios, markups, and simulated price effects inherit the error.
+Antitrust authorities increasingly confront mergers in digital markets -- characteristically, an established incumbent acquiring a fast-growing, digitally native brand -- in which product differentiation is not described by standardised attributes. In a car merger the analyst observes horsepower and fuel economy; in a laptop merger, RAM and screen size. In an online consumer-goods merger, the economically relevant differentiation -- a "natural" positioning, sensitivity relief, visual branding, a kid-friendly format -- lives in unstructured listing content: product images, titles, and free-form benefit descriptions. The workhorse tools of merger simulation, however, were built for the structured world. Nested-logit models encode substitution through nest assignments constructed from coarse observable labels, most commonly brand identity or hand-picked segments, and when those labels misrepresent how consumers perceive products, the resulting diversion ratios, markups, and simulated price effects inherit the error.
 
-This paper asks whether nests constructed from *unstructured product content* -- listing images and text encoded by a pre-trained deep learning model -- measure substitution better than brand labels do. The setting is well suited to the question. On Amazon, a category such as toothpaste contains hundreds of differentiated listings whose economically relevant attributes (sensitivity relief, whitening, "natural" positioning, package format) are conveyed through product images and free-form titles rather than standardised characteristics tables. I encode each product's image and listing text with CLIP (Contrastive Language-Image Pre-training; Radford et al. 2021), reduce the joint embedding to five principal components, and assign products to nests by k-means clustering in this embedding space.
+A second, equally practical obstacle compounds the first. Estimating price sensitivity credibly requires exogenous cost-side variation, and high-frequency online retail data rarely contain any: input-cost series vary only over time and are absorbed by time fixed effects, while Hausman-style rival-price instruments fail when demand shocks are correlated across markets, as they plainly are on a single national platform. The symptom of proceeding without valid instruments is well known to practitioners: demand estimated far too inelastic, implying Bertrand markups so large that the marginal costs recovered from the first-order conditions turn *negative* for a substantial share of products. This negative-cost rate is not a cosmetic nuisance -- it is a direct, observable measure of how badly a demand system describes competition, and it is the diagnostic this paper puts at the centre of the analysis.
 
-The empirical laboratory is Colgate-Palmolive's acquisition of hello Products LLC, a fast-growing premium "naturally friendly" oral-care brand. The deal was announced on 23 January 2020 and completed on 31 January 2020 for \$351 million in cash, giving a clean event date (2020Q1) inside the sample. Using an ASIN-by-quarter panel of the Amazon US toothpaste market (2018Q1--2022Q3, 159 products), I estimate three demand models via the Berry (1994) nested-logit linearisation that are identical in every respect except the nest assignment: M1 imposes no nesting (plain logit), M2 nests by brand, and M3 nests by K=5 CLIP clusters. The price coefficient is calibrated to the meta-analytic mean own-price elasticity of $-2.62$ for consumer packaged goods (Bijmolt, van Heerde, and Pieters 2005), the remaining parameters are estimated by concentrated OLS with quarter fixed effects, and the nesting parameter $\rho$ is profiled by grid search. Marginal costs are recovered from the Bertrand first-order conditions, and the merger is simulated by recomputing Nash equilibrium prices under pre- and post-merger ownership at fixed pre-merger costs.
+This paper offers a pragmatic pipeline for exactly that environment, with one methodological contribution at its core. The pipeline maps unstructured product listings into a continuous differentiation space using a pre-trained deep learning model -- CLIP image and text embeddings (Radford et al. 2021), reduced to five joint principal components -- and sidesteps the missing-instrument problem by calibrating the price coefficient to an established industry elasticity, the meta-analytic mean own-price elasticity of $-2.62$ for consumer packaged goods (Bijmolt, van Heerde, and Pieters 2005). The contribution lies in what the embeddings are used *for*: nests are assigned by k-means clustering in the embedding space rather than by brand. Holding everything else fixed, I compare three Berry (1994) nested-logit models that differ only in their nest assignment -- no nesting, brand nesting, and CLIP-cluster nesting -- and let the negative-cost diagnostic adjudicate between them.
+
+The empirical laboratory is Colgate-Palmolive's acquisition of hello Products LLC, a fast-growing premium "naturally friendly" oral-care brand. The deal was announced on 23 January 2020 and completed on 31 January 2020 for \$351 million in cash, giving a clean event date (2020Q1) inside the sample. Using an ASIN-by-quarter panel of the Amazon US toothpaste market (2018Q1--2022Q3, 159 products), I estimate three demand models via the Berry (1994) nested-logit linearisation that are identical in every respect except the nest assignment: M1 imposes no nesting (plain logit), M2 nests by brand, and M3 nests by K=5 CLIP clusters. With the price coefficient fixed by calibration, the remaining parameters are estimated by concentrated OLS with quarter fixed effects and the nesting parameter $\rho$ is profiled by grid search. Marginal costs are recovered from the Bertrand first-order conditions, and the merger is simulated by recomputing Nash equilibrium prices under pre- and post-merger ownership at fixed pre-merger costs.
 
 Three results stand out. First, CLIP-based nesting fits demand best: the profiled nesting parameter is $\rho^{*}=0.67$ and the residual sum of squares falls by 8.1% relative to plain logit, against 3.1% for brand nesting. Second -- and this is the central finding -- CLIP nesting drives the share of observations with *negative implied marginal costs* from 8.6% under both plain logit and brand nesting to 1.7%. Negative recovered costs are the canonical symptom of a demand system that understates substitutability and therefore overstates markups; their near-elimination is direct evidence that embedding-based nests capture the competitive structure that brand labels miss. Third, the economics of the merger change materially: CLIP places hello and Colgate in different clusters, implying low diversion between the merging parties, and the simulated price effect for hello falls from +1.23% (plain logit) to +0.40% (CLIP nesting), with Colgate's own effect essentially zero.
 
@@ -154,13 +156,81 @@ hello Products LLC, founded in 2012, positioned itself as a "naturally friendly"
 
 The dataset is an ASIN x quarter panel covering the Amazon US toothpaste market from 2018Q1 to 2022Q3 (19 quarters, 159 ASINs, 1,164 observations). Market shares are constructed using revealed-preference purchase data. Market size $M_t$ is set to $(1 + \lambda) \cdot \sum_j q_{jt}$ with $\lambda = 13.93$, implying an outside-good share of approximately 93%.
 
-## CLIP Embeddings
+## From Listings to Nests: Embeddings, Joint PCA, and Clustering
 
-CLIP (Contrastive Language-Image Pre-training; Radford et al. 2021) embeddings are computed once per ASIN from its product image and listing text using `clip-vit-base-patch32`. Each modality's 512-dimensional embedding is first reduced to five modality-specific principal components; a joint PCA on the ten standardised columns (5 image + 5 text PCs) then yields five joint PCs (PC1–PC5) per ASIN. The joint PCA is fitted on the 155 ASINs with both modalities. Loadings are balanced across modalities — the image share of every joint component lies between 48.6% and 51.4% — confirming that neither modality dominates the product-space representation. Five clusters are obtained via $K$-means ($K=5$, 50 restarts, seed 42), which explain 71.2% of the joint-PC variance.
+Each product $j$ is represented by its listing image and the concatenation of its title and benefit description. CLIP (Contrastive Language-Image Pre-training; Radford et al. 2021) provides an image encoder $f_I$ and a text encoder $f_T$, trained contrastively so that matching image--text pairs lie close together in a shared representation space. Both encoders (`clip-vit-base-patch32`) map into $\mathbb{R}^{512}$, and outputs are L2-normalised:
+
+$$\mathbf{e}^{I}_{j} = \frac{f_I(\text{image}_j)}{\lVert f_I(\text{image}_j) \rVert}, \qquad
+\mathbf{e}^{T}_{j} = \frac{f_T(\text{text}_j)}{\lVert f_T(\text{text}_j) \rVert}.$$
+
+Each modality's embeddings are first reduced to five modality-specific principal components (Hotelling 1933), with each PCA fitted only on the products holding a valid embedding for that modality. This yields a ten-dimensional characteristics vector per product, $\mathbf{x}_j = (x^{I}_{j1},\dots,x^{I}_{j5},\,x^{T}_{j1},\dots,x^{T}_{j5})$.
+
+Because these ten columns come from two separate PCA fits, their scales are not comparable: within each modality the first component mechanically carries the largest variance, and the image and text blocks have different overall variance levels. The joint PCA is therefore computed on the correlation scale. Each column $k$ is z-scored using its mean $\mu_k$ and standard deviation $\sigma_k$ over the $N = 155$ products with both modalities,
+
+$$z_{jk} = \frac{x_{jk} - \mu_k}{\sigma_k},$$
+
+and the rotation matrix $\mathbf{W}$ is obtained from the PCA of the standardised matrix $\mathbf{Z}$. The first five joint components, $\mathbf{pc}_j = \mathbf{z}_j' \mathbf{W}_{[\cdot,1:5]}$, define the differentiation space used throughout the paper. Standardisation is not cosmetic: without it, the joint solution would be dominated by whichever input columns happen to carry the largest raw variance -- the two first-stage PC1s -- rather than by genuine cross-modality structure. The fitted parameters $(\mu_k, \sigma_k, \mathbf{W})$ are saved with the replication materials, which makes the projection of any product into the joint space exactly reproducible.
+
+A useful diagnostic for whether the joint space actually blends the two modalities is the modality share of each component: the fraction of its squared rotation loadings attributable to image inputs,
+
+$$\text{share}^{I}_{m} = \frac{\sum_{k \in I} w_{km}^2}{\sum_{k} w_{km}^2}, \qquad m = 1, \dots, 5.$$
+
+As Figure 1 shows, every retained joint component draws between 48.6% and 51.4% of its loading mass from each modality -- the joint space is genuinely multimodal rather than a relabelled image space or text space.
+
+Finally, nests are formed by k-means clustering (Lloyd 1982) on the five joint components: each product is assigned to one of $K = 5$ clusters,
+
+$$g_j = \arg\min_{g \in \{1,\dots,K\}} \lVert \mathbf{pc}_j - \mathbf{c}_g \rVert^2,$$
+
+with centroids $\mathbf{c}_g$ from 50 random restarts (seed 42), and cluster membership is the nest assignment in M3. The five clusters explain 71.2% of joint-PC variance. Appendix A reports cluster-quality diagnostics -- within-cluster sum of squares and average silhouette width (Rousseeuw 1987) -- together with all downstream results for $K = 2, \dots, 10$.
+
+```{r fig_pca, fig.cap="Anatomy of the joint embedding space. Left: variance explained by each joint principal component of the standardised ten-column input (five image PCs and five text PCs), fitted on the 155 ASINs with both modalities; the first five components (blue) are retained. Right: modality composition of each retained component, measured as the share of squared rotation loadings attributable to image versus text inputs. The dashed line marks an even 50/50 split; every component lies within 1.4 percentage points of it, confirming the joint space blends both modalities rather than being dominated by either.", fig.width=7, fig.height=3.4}
+feat10 <- fread(file.path(repo_dir, "scripts/CLIP-Embeddings/asin_features_for_blp_clip.csv"))
+img_cols10  <- paste0("asin_img_pc", 1:5)
+text_cols10 <- paste0("asin_text_pc", 1:5)
+in_cols10   <- c(img_cols10, text_cols10)
+
+X10   <- as.matrix(feat10[has_img == 1 & has_text == 1, ..in_cols10])
+Z10   <- scale(X10)                       # z-score each column: (x - mu_k) / sigma_k
+pca10 <- prcomp(Z10, center = FALSE, scale. = FALSE)
+ve10  <- 100 * pca10$sdev^2 / sum(pca10$sdev^2)
+
+scree_dt <- data.table(
+  pc       = factor(1:10),
+  ve       = ve10,
+  retained = factor(c(rep("Retained (PC1-PC5)", 5), rep("Dropped", 5)),
+                    levels = c("Retained (PC1-PC5)", "Dropped"))
+)
+
+W2 <- pca10$rotation[, 1:5]^2
+img_share10 <- 100 * colSums(W2[rownames(W2) %in% img_cols10, ]) / colSums(W2)
+share_dt <- data.table(
+  pc       = factor(rep(paste0("PC", 1:5), 2), levels = paste0("PC", 1:5)),
+  modality = rep(c("Image", "Text"), each = 5),
+  share    = c(img_share10, 100 - img_share10)
+)
+
+p_scree <- ggplot(scree_dt, aes(pc, ve, fill = retained)) +
+  geom_col(width = 0.7) +
+  scale_fill_manual(values = c("Retained (PC1-PC5)" = "#2563eb", "Dropped" = "grey75"),
+                    name = NULL) +
+  labs(x = "Joint principal component", y = "Variance explained (%)") +
+  theme_minimal(base_size = 9) +
+  theme(legend.position = "bottom", panel.grid.minor = element_blank())
+
+p_share <- ggplot(share_dt, aes(pc, share, fill = modality)) +
+  geom_col(width = 0.6) +
+  geom_hline(yintercept = 50, linetype = "dashed", colour = "grey30", linewidth = 0.4) +
+  scale_fill_manual(values = c("Image" = "#2563eb", "Text" = "#f28e2b"), name = NULL) +
+  labs(x = "Retained joint component", y = "Share of squared loadings (%)") +
+  theme_minimal(base_size = 9) +
+  theme(legend.position = "bottom", panel.grid.minor = element_blank())
+
+p_scree + p_share
+```
 
 Embeddings are static over the sample window. Established Amazon listings change their images and titles only marginally over 2018–2022, so re-extracting embeddings per quarter would produce near-identical vectors; the identifying variation is **cross-sectional** — ASINs within the same brand differ genuinely in packaging and benefit claims — and this is exactly the variation recovered by moving from brand-level to ASIN-level data. Time-varying demand conditions are absorbed by quarter fixed effects.
 
-Twelve ASINs lack an image embedding (image retrieval failed at extraction time) but have valid text embeddings. Rather than dropping them or imputing brand means, they are projected into the joint PC space from their standardised text components, with image dimensions set to the cross-sectional mean (zero in standardised space). These ASINs span Crest (4), Sensodyne (2), Tom's of Maine (2), hello (2), and Other (2), and all clear the three-quarter inclusion filter. Dropping them would distort brand-level market shares and remove hello observations inside the merger simulation window; brand-mean imputation was rejected because it would reintroduce precisely the aggregation that the ASIN-level design is meant to avoid.
+Twelve ASINs lack an image embedding (image retrieval failed at extraction time) but have valid text embeddings. Rather than dropping them or imputing brand means, they are projected into the joint PC space from their standardised text components, with image dimensions set to the cross-sectional mean -- zero in standardised space, so that $\mathbf{pc}_j = (\mathbf{0},\, \mathbf{z}^{T}_j)'\,\mathbf{W}_{[\cdot,1:5]}$ using the same saved $(\mu_k, \sigma_k, \mathbf{W})$. These ASINs span Crest (4), Sensodyne (2), Tom's of Maine (2), hello (2), and Other (2), and all clear the three-quarter inclusion filter. Dropping them would distort brand-level market shares and remove hello observations inside the merger simulation window; brand-mean imputation was rejected because it would reintroduce precisely the aggregation that the ASIN-level design is meant to avoid.
 
 ---
 
@@ -543,7 +613,7 @@ kbl(tab4,
 
 ## Figures
 
-Figure 1 visualises the CLIP product space: hello's listings sit in the natural/specialty cluster on the left of the embedding plane while Colgate's cluster occupies the opposite region, making the low implied diversion between the merging parties directly visible. Figure 2 traces the post-merger window quarter by quarter, showing the merger Nash equilibrium diverging from the no-merger counterfactual for hello while the two paths for Colgate remain indistinguishable.
+Figure 2 visualises the CLIP product space: hello's listings sit in the natural/specialty cluster on the left of the embedding plane while Colgate's cluster occupies the opposite region, making the low implied diversion between the merging parties directly visible. Figure 3 traces the post-merger window quarter by quarter, showing the merger Nash equilibrium diverging from the no-merger counterfactual for hello while the two paths for Colgate remain indistinguishable.
 
 ```{r figure1, fig.cap="Product space from CLIP embeddings. Each point is one ASIN positioned by its first two principal components of the joint image+text embedding. Cluster centroids are labelled C1--C5. hello (red diamonds, C5) and Colgate (dark blue triangles, C2) occupy different clusters, implying a lower diversion ratio and a smaller predicted merger effect under CLIP nesting relative to plain logit.", fig.width=6.5, fig.height=4.8}
 
@@ -739,11 +809,17 @@ Conlon, C., \& Gortmaker, J. (2020). Best practices for differentiated products 
 
 Draganska, M., \& Jain, D.C. (2006). Consumer preferences and product-line pricing strategies: An empirical analysis. *Marketing Science*, 25(2), 164--174.
 
+Hotelling, H. (1933). Analysis of a complex of statistical variables into principal components. *Journal of Educational Psychology*, 24(6), 417--441.
+
+Lloyd, S.P. (1982). Least squares quantization in PCM. *IEEE Transactions on Information Theory*, 28(2), 129--137.
+
 Nevo, A. (2000). A practitioner's guide to estimation of random-coefficients logit models of demand. *Journal of Economics \& Management Strategy*, 9(4), 513--548.
 
 Nevo, A. (2001). Measuring market power in the ready-to-eat cereal industry. *Econometrica*, 69(2), 307--342.
 
 Radford, A., Kim, J.W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S., \ldots \& Sutskever, I. (2021). Learning transferable visual models from natural language supervision. *Proceedings of the 38th International Conference on Machine Learning (ICML)*, 8748--8763.
+
+Rousseeuw, P.J. (1987). Silhouettes: A graphical aid to the interpretation and validation of cluster analysis. *Journal of Computational and Applied Mathematics*, 20, 53--65.
 
 \clearpage
 
