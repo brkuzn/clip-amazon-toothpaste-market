@@ -1892,19 +1892,215 @@ effect hinges on exactly the substitution question this paper studies;
 and both parties sell extensively on Amazon, where listing content is
 observable.</p>
 </div>
-<div id="panel-construction" class="section level2" number="3.2">
-<h2><span class="header-section-number">3.2</span> Panel
-Construction</h2>
-<p>The dataset is an ASIN x quarter panel covering the Amazon US
-toothpaste market from 2018Q1 to 2022Q3 (19 quarters, 159 ASINs, 1,164
-observations). Market shares are constructed using revealed-preference
-purchase data. Market size <span class="math inline">\(M_t\)</span> is
-set to <span class="math inline">\((1 + \lambda) \cdot \sum_j
-q_{jt}\)</span> with <span class="math inline">\(\lambda =
-13.93\)</span>, implying an outside-good share of approximately 93%.</p>
+<div id="data-sources" class="section level2" number="3.2">
+<h2><span class="header-section-number">3.2</span> Data Sources</h2>
+<p>The analysis combines two data sources. Household-level purchase
+histories come from the Open E-commerce 1.0 dataset (Berke et al. 2024),
+a crowdsourced panel of 5,027 US Amazon consumers with more than 1.8
+million transaction records, distributed through Harvard Dataverse. The
+dataset has been validated by its authors against public Amazon sales
+data: aggregate expenditure in the panel correlates with published
+Amazon revenues at Pearson <span class="math inline">\(r =
+0.978\)</span> (<span class="math inline">\(p &lt; 0.001\)</span>; Berke
+et al. 2024). The toothpaste purchase records extracted for this study
+span January 2018 to March 2023 and include order timestamps, prices,
+and household identifiers; household demographics are available in the
+source data but enter the analysis only through the count of unique
+purchasing households per cell. Product-level metadata – titles, benefit
+descriptions, and image URLs for every purchased ASIN – were collected
+via Keepa and parsed with a rule-based extraction script (brand matching
+against a curated brand list, keyword-based benefit extraction, and
+unit-aware package-size parsing).</p>
 </div>
-<div id="from-listings-to-nests-embeddings-joint-pca-and-clustering" class="section level2" number="3.3">
-<h2><span class="header-section-number">3.3</span> From Listings to
+<div id="sample-construction" class="section level2" number="3.3">
+<h2><span class="header-section-number">3.3</span> Sample
+Construction</h2>
+<p>The estimation sample is built in three steps, each dictated by a
+practical constraint:</p>
+<ol style="list-style-type: decimal">
+<li><p><strong>Choice-set restriction (167 ASINs).</strong> The universe
+of toothpaste ASINs is restricted to products with at least five
+recorded purchases over the sample window. An unrestricted choice set
+with thousands of rarely purchased alternatives proved computationally
+infeasible and produced singular design matrices; the five-purchase
+floor keeps every product with meaningful revealed-preference
+information while discarding noise listings.</p></li>
+<li><p><strong>Brand grouping (12 groups).</strong> Brands accounting
+for more than 2% of purchases are treated as their own groups – Colgate,
+Crest, SENSODYNE PRONAMEL, Sensodyne, Tom’s of Maine, Arm &amp; Hammer,
+hello, Parodontax, APAGARD, JASON, and Orajel – and all remaining small
+brands are collapsed into an “Other” category. Together the eleven named
+groups account for 87% of purchases.</p></li>
+<li><p><strong>Panel filters (159 ASINs, 1,164 observations).</strong>
+Purchases are aggregated to ASIN x quarter cells. The estimation window
+ends in 2022Q3 (later quarters are incompletely covered), and ASINs must
+appear in at least three quarters to enter the sample, eliminating
+products whose near-zero shares would be dominated by sampling noise.
+The resulting panel covers 2018Q1–2022Q3: 19 quarters, 159 ASINs, and
+1,164 observations.</p></li>
+</ol>
+<p>Separately from these sample filters, the joint embedding space of
+Section 3.4 is <em>fitted</em> on the 155 of 167 ASINs that hold both a
+valid image and a valid text embedding; the 12 ASINs with text-only
+embeddings are projected into that space and remain in the estimation
+sample throughout. Table 1 reports summary statistics for the estimation
+panel.</p>
+<table class="table table-striped table-hover table-condensed" style="font-size: 13px; width: auto !important; margin-left: auto; margin-right: auto;border-bottom: 0;">
+<caption style="font-size: initial !important;">
+Panel Summary Statistics (Estimation Sample)
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+Variable
+</th>
+<th style="text-align:right;">
+Mean
+</th>
+<th style="text-align:right;">
+Median
+</th>
+<th style="text-align:right;">
+SD
+</th>
+<th style="text-align:right;">
+Min
+</th>
+<th style="text-align:right;">
+Max
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Price (USD)
+</td>
+<td style="text-align:right;">
+9.20
+</td>
+<td style="text-align:right;">
+8.47
+</td>
+<td style="text-align:right;">
+5.34
+</td>
+<td style="text-align:right;">
+1.35
+</td>
+<td style="text-align:right;">
+41.75
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Quarterly units sold
+</td>
+<td style="text-align:right;">
+2.17
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+1.96
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+18.00
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Market share (x1,000)
+</td>
+<td style="text-align:right;">
+1.093
+</td>
+<td style="text-align:right;">
+0.753
+</td>
+<td style="text-align:right;">
+1.036
+</td>
+<td style="text-align:right;">
+0.335
+</td>
+<td style="text-align:right;">
+9.802
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Package size (g)
+</td>
+<td style="text-align:right;">
+320
+</td>
+<td style="text-align:right;">
+259
+</td>
+<td style="text-align:right;">
+223
+</td>
+<td style="text-align:right;">
+43
+</td>
+<td style="text-align:right;">
+1179
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Purchasing households per cell
+</td>
+<td style="text-align:right;">
+2.06
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+1.85
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+17.00
+</td>
+</tr>
+</tbody>
+<tfoot>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<span style="font-style: italic;">Notes: </span>
+</td>
+</tr>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<sup></sup> 1,164 ASIN x quarter observations; 159 ASINs; 19 quarters
+(2018Q1–2022Q3); 12 brand groups. Price is the quarterly mean deflated
+transaction price per ASIN. Market share uses market size M_t = (1 +
+13.93) x total quarterly purchases (outside-good share approx. 93%).
+</td>
+</tr>
+</tfoot>
+</table>
+</div>
+<div id="market-definition" class="section level2" number="3.4">
+<h2><span class="header-section-number">3.4</span> Market
+Definition</h2>
+<p>Market shares are constructed from revealed-preference purchase
+counts. Market size <span class="math inline">\(M_t\)</span> is set to
+<span class="math inline">\((1 + \lambda) \cdot \sum_j q_{jt}\)</span>
+with <span class="math inline">\(\lambda = 13.93\)</span>, implying an
+outside-good share of approximately 93%.</p>
+</div>
+<div id="from-listings-to-nests-embeddings-joint-pca-and-clustering" class="section level2" number="3.5">
+<h2><span class="header-section-number">3.5</span> From Listings to
 Nests: Embeddings, Joint PCA, and Clustering</h2>
 <p>Each product <span class="math inline">\(j\)</span> is represented by
 its listing image and the concatenation of its title and benefit
@@ -2098,10 +2294,10 @@ equivalence.</p>
 </div>
 <div id="results" class="section level1" number="5">
 <h1><span class="header-section-number">5</span> Results</h1>
-<div id="summary-statistics" class="section level2" number="5.1">
-<h2><span class="header-section-number">5.1</span> Summary
-Statistics</h2>
-<p>Table 1 reports summary statistics by CLIP cluster. The clusters
+<div id="summary-statistics-by-cluster" class="section level2" number="5.1">
+<h2><span class="header-section-number">5.1</span> Summary Statistics by
+Cluster</h2>
+<p>Table 2 reports summary statistics by CLIP cluster. The clusters
 recover economically meaningful segments without using any sales or
 price information: a premium sensitivity segment (C1, dominated by the
 GSK brands), the two mainstream incumbents in their own clusters (C2
@@ -2383,7 +2579,7 @@ count within cluster.
 </div>
 <div id="demand-estimates" class="section level2" number="5.2">
 <h2><span class="header-section-number">5.2</span> Demand Estimates</h2>
-<p>Table 2 presents the demand parameters for all three models,
+<p>Table 3 presents the demand parameters for all three models,
 separating the calibrated <span class="math inline">\(\alpha\)</span>
 from the estimated <span class="math inline">\(\boldsymbol{\beta}\)</span> and the profiled <span class="math inline">\(\rho^{*}\)</span>. Brand nesting yields <span class="math inline">\(\rho^{*}=0.35\)</span> with a 3.1% RSS improvement
 over plain logit; CLIP nesting yields <span class="math inline">\(\rho^{*}=0.67\)</span> with an 8.1% improvement.
@@ -2598,10 +2794,273 @@ Grid-searched on {0, 0.01, …, 0.90}; rho=0 fixed for M1.
 </tfoot>
 </table>
 </div>
-<div id="merger-counterfactuals" class="section level2" number="5.3">
-<h2><span class="header-section-number">5.3</span> Merger
+<div id="own-price-elasticities-by-brand" class="section level2" number="5.3">
+<h2><span class="header-section-number">5.3</span> Own-Price
+Elasticities by Brand</h2>
+<p>Table 4 reports median own-price elasticities by brand group for each
+model. Two patterns are worth noting. First, within each model,
+elasticities scale with price levels – the nested-logit own-price
+elasticity is proportional to <span class="math inline">\(\alpha
+p_j\)</span>, so premium brands such as APAGARD and SENSODYNE PRONAMEL
+are mechanically the most elastic. Second, and more informative, moving
+from M1 to M3 amplifies all elasticities by roughly <span class="math inline">\(1/(1-\rho^{*})\)</span>, but the amplification
+interacts with cluster composition: brands sharing a crowded embedding
+cluster face the strongest within-nest competition. The merging parties
+illustrate the point – hello’s median elasticity rises from <span class="math inline">\(-1.42\)</span> under plain logit to <span class="math inline">\(-4.05\)</span> under CLIP nesting, reflecting the
+intense substitution among the natural/specialty products in its cluster
+rather than substitution toward Colgate.</p>
+<table class="table table-striped table-hover table-condensed" style="font-size: 13px; width: auto !important; margin-left: auto; margin-right: auto;border-bottom: 0;">
+<caption style="font-size: initial !important;">
+Median Own-Price Elasticities by Brand Group
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+Brand
+</th>
+<th style="text-align:right;">
+N obs.
+</th>
+<th style="text-align:right;">
+M1: Logit
+</th>
+<th style="text-align:right;">
+M2: Brand-Nested
+</th>
+<th style="text-align:right;">
+M3: CLIP-Nested
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+APAGARD
+</td>
+<td style="text-align:right;">
+44
+</td>
+<td style="text-align:right;">
+-4.92
+</td>
+<td style="text-align:right;">
+-6.62
+</td>
+<td style="text-align:right;">
+-14.33
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Sensodyne
+</td>
+<td style="text-align:right;">
+99
+</td>
+<td style="text-align:right;">
+-3.00
+</td>
+<td style="text-align:right;">
+-4.27
+</td>
+<td style="text-align:right;">
+-8.68
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SENSODYNE PRONAMEL
+</td>
+<td style="text-align:right;">
+90
+</td>
+<td style="text-align:right;">
+-3.04
+</td>
+<td style="text-align:right;">
+-4.42
+</td>
+<td style="text-align:right;">
+-8.67
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;">
+Colgate
+</td>
+<td style="text-align:right;font-weight: bold;">
+224
+</td>
+<td style="text-align:right;font-weight: bold;">
+-2.84
+</td>
+<td style="text-align:right;font-weight: bold;">
+-4.27
+</td>
+<td style="text-align:right;font-weight: bold;">
+-8.24
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Tom’s of Maine
+</td>
+<td style="text-align:right;">
+85
+</td>
+<td style="text-align:right;">
+-3.03
+</td>
+<td style="text-align:right;">
+-4.38
+</td>
+<td style="text-align:right;">
+-8.07
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Other
+</td>
+<td style="text-align:right;">
+220
+</td>
+<td style="text-align:right;">
+-2.70
+</td>
+<td style="text-align:right;">
+-4.09
+</td>
+<td style="text-align:right;">
+-7.98
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Crest
+</td>
+<td style="text-align:right;">
+219
+</td>
+<td style="text-align:right;">
+-2.11
+</td>
+<td style="text-align:right;">
+-3.18
+</td>
+<td style="text-align:right;">
+-6.17
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Parodontax
+</td>
+<td style="text-align:right;">
+51
+</td>
+<td style="text-align:right;">
+-1.79
+</td>
+<td style="text-align:right;">
+-2.54
+</td>
+<td style="text-align:right;">
+-5.29
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Arm &amp; Hammer
+</td>
+<td style="text-align:right;">
+21
+</td>
+<td style="text-align:right;">
+-1.53
+</td>
+<td style="text-align:right;">
+-1.62
+</td>
+<td style="text-align:right;">
+-4.22
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;">
+hello
+</td>
+<td style="text-align:right;font-weight: bold;">
+50
+</td>
+<td style="text-align:right;font-weight: bold;">
+-1.42
+</td>
+<td style="text-align:right;font-weight: bold;">
+-1.88
+</td>
+<td style="text-align:right;font-weight: bold;">
+-4.05
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+JASON
+</td>
+<td style="text-align:right;">
+29
+</td>
+<td style="text-align:right;">
+-1.30
+</td>
+<td style="text-align:right;">
+-1.48
+</td>
+<td style="text-align:right;">
+-3.77
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Orajel
+</td>
+<td style="text-align:right;">
+32
+</td>
+<td style="text-align:right;">
+-0.86
+</td>
+<td style="text-align:right;">
+-1.16
+</td>
+<td style="text-align:right;">
+-2.53
+</td>
+</tr>
+</tbody>
+<tfoot>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<span style="font-style: italic;">Notes: </span>
+</td>
+</tr>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<sup></sup> Median own-price elasticity across all ASIN x quarter
+observations of each brand group, full estimation panel (1,164
+observations). Elasticity formula: e_jj = alpha p_j [1/(1-rho) - rho
+s_j|g/(1-rho) - s_j], with alpha = -0.310 (calibrated) and rho* = 0
+(M1), 0.35 (M2), 0.67 (M3). Rows sorted by M3 elasticity; bold = merger
+parties.
+</td>
+</tr>
+</tfoot>
+</table>
+</div>
+<div id="merger-counterfactuals" class="section level2" number="5.4">
+<h2><span class="header-section-number">5.4</span> Merger
 Counterfactuals</h2>
-<p>Table 3 reports the merger counterfactuals: observed prices,
+<p>Table 5 reports the merger counterfactuals: observed prices,
 recovered marginal costs, the no-merger Nash equilibrium, the merger
 Nash equilibrium, and the implied price effect <span class="math inline">\(\Delta p\)</span> for the merging parties and the
 largest rivals. Under plain logit, where diversion is proportional to
@@ -3020,8 +3479,8 @@ Nash (pre). MC inverted from pre-merger FOC and held fixed.
 </tfoot>
 </table>
 </div>
-<div id="cross-model-comparison" class="section level2" number="5.4">
-<h2><span class="header-section-number">5.4</span> Cross-Model
+<div id="cross-model-comparison" class="section level2" number="5.5">
+<h2><span class="header-section-number">5.5</span> Cross-Model
 Comparison</h2>
 <p>The central economic-plausibility comparison across the three models
 is summarised below. The share of observations with <strong>negative
@@ -3165,8 +3624,8 @@ specification.
 </tfoot>
 </table>
 </div>
-<div id="figures" class="section level2" number="5.5">
-<h2><span class="header-section-number">5.5</span> Figures</h2>
+<div id="figures" class="section level2" number="5.6">
+<h2><span class="header-section-number">5.6</span> Figures</h2>
 <p>Figure 2 visualises the CLIP product space: hello’s listings sit in
 the natural/specialty cluster on the left of the embedding plane while
 Colgate’s cluster occupies the opposite region, making the low implied
@@ -3272,6 +3731,10 @@ method auditable in exactly the settings where it would be applied.</p>
 </div>
 <div id="references" class="section level1" number="8">
 <h1><span class="header-section-number">8</span> References</h1>
+<p>Berke, A., Calacci, D., Mahari, R., Yabe, T., Larson, K., &amp;
+Pentland, A. (2024). Open e-commerce 1.0, five years of crowdsourced
+U.S. Amazon purchase histories with user demographics. <em>Scientific
+Data</em>, 11, 491. <a href="https://doi.org/10.1038/s41597-024-03329-6" class="uri">https://doi.org/10.1038/s41597-024-03329-6</a></p>
 <p>Berry, S.T. (1994). Estimating discrete-choice models of product
 differentiation. <em>RAND Journal of Economics</em>, 25(2), 242–262.</p>
 <p>Bijmolt, T.H.A., van Heerde, H.J., &amp; Pieters, R.G.M. (2005). New
