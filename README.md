@@ -32,27 +32,31 @@ Open **`blp_three_models.html`** directly in any browser for the full interactiv
 ```
 clip-amazon-toothpaste-market/
 ├── data/
-│   ├── asin_quarter_panel.csv          # ASIN×quarter panel (159 ASINs, 19 quarters)
+│   ├── asin_quarter_panel.csv          # ASIN×quarter panel (raw; estimation sample = 159 ASINs, 19 quarters)
 │   ├── asin_joint_pcs_complete.csv     # CLIP embedding PCs (5 components per ASIN)
 │   └── asin_characteristics.csv       # Package size & import flag per ASIN
 ├── scripts/
 │   ├── blp_three_models.R             # MAIN: demand estimation + merger simulation
 │   ├── clip_k_sensitivity.R           # K=2..10 sensitivity analysis
 │   ├── tables_and_figures.R           # Table 1, Figure 1, Figure 2
+│   ├── CLIP-Embeddings/               # Upstream embedding pipeline (see its README.md)
+│   │   ├── asin_master_for_embeddings.parquet   # Input: ASIN titles/benefits/image URLs
+│   │   ├── clip_asin_embedding_extraction.ipynb # CLIP extraction (Colab/GPU)
+│   │   ├── asin_features_for_blp_clip.csv       # Extraction output (committed for exact repro)
+│   │   └── asin_joint_pca.R                     # Joint PCA → data/asin_joint_pcs_complete.csv
+│   │                                            #   (verified byte-identical reproduction)
 │   └── inject_tables.R                # DEV ONLY: injects kableExtra tables into HTML
 │                                      #   (hardcoded local paths, not needed for replication)
-├── output/                            # Pre-populated reference outputs for comparison
-│   ├── figures/
-│   │   ├── figure1_clip_space.png     # CLIP PC1×PC2 scatter (K=5 clusters)
-│   │   └── figure2_price_trajectories.png  # Nash merger vs no-merger price paths
-│   ├── tables/
-│   │   ├── table1_cluster_summary.csv
-│   │   ├── three_models_merger_summary.csv
-│   │   └── clip_k_sensitivity.csv
-│   └── coefficients/
-│       ├── model1_coefficients.csv
-│       ├── model2_coefficients.csv
-│       └── model3_coefficients.csv
+├── output/                            # Reference outputs (scripts regenerate these in place)
+│   ├── figure1_clip_space.png         # CLIP PC1×PC2 scatter (K=5 clusters)
+│   ├── figure2_price_trajectories.png # Nash merger vs no-merger price paths
+│   ├── table1_cluster_summary.csv
+│   ├── three_models_merger_summary.csv
+│   ├── three_models_rmse.csv
+│   ├── three_models_formulas.txt      # Plain-text formula reference for all models
+│   ├── clip_k_sensitivity.csv
+│   ├── model{1,2,3}_coefficients.csv
+│   └── model{1,2,3}_asin_results.csv  # ASIN×quarter: share, mc, elasticity, Nash prices
 ├── papers/                            # Reference PDFs for all cited works
 │   ├── Berry1994.pdf
 │   ├── JMR_2005_BijmoltVanHeerdePieters.pdf
@@ -114,22 +118,23 @@ Run in this order (each step's output is required by the next):
 
 ```r
 # 1. Demand estimation + merger simulation (≈ 5–10 min)
-#    Writes: output/tables/three_models_merger_summary.csv
-#            output/coefficients/model{1,2,3}_coefficients.csv
+#    Writes: output/three_models_merger_summary.csv
+#            output/model{1,2,3}_coefficients.csv
+#            output/model{1,2,3}_asin_results.csv
 source("/path/to/repo/scripts/blp_three_models.R")
 
 # 2. K sensitivity analysis — K=2..10 (≈ 15–20 min)
-#    Writes: output/tables/clip_k_sensitivity.csv
+#    Writes: output/clip_k_sensitivity.csv
 source("/path/to/repo/scripts/clip_k_sensitivity.R")
 
 # 3. Figures and Table 1 (< 1 min) — requires step 1 output
-#    Writes: output/figures/figure1_clip_space.png
-#            output/figures/figure2_price_trajectories.png
-#            output/tables/table1_cluster_summary.csv
+#    Writes: output/figure1_clip_space.png
+#            output/figure2_price_trajectories.png
+#            output/table1_cluster_summary.csv
 source("/path/to/repo/scripts/tables_and_figures.R")
 ```
 
-Your results can be compared against the pre-populated `output/` folder included in the repo.
+All scripts write directly into `output/`, overwriting the reference copies shipped with the repo. To compare your results against ours, diff against the committed versions (e.g. `git diff output/`) — all randomness is seed-pinned, so results should match to numerical precision (tiny last-digit floating-point differences across machines/BLAS libraries are normal).
 
 > **Note:** `inject_tables.R` is a development utility used to rebuild `blp_three_models.html` from local intermediate files. It contains hardcoded paths specific to the author's machine and is **not needed** for replication — the HTML is already fully built and included in the repo.
 
@@ -139,9 +144,11 @@ Your results can be compared against the pre-populated `output/` folder included
 
 | File | Rows | Description |
 |---|---|---|
-| `asin_quarter_panel.csv` | 3,492 | ASIN×quarter sales, prices, CLIP PCs (2019Q1–2022Q2) |
-| `asin_joint_pcs_complete.csv` | 159 | 5 CLIP principal components per ASIN |
+| `asin_quarter_panel.csv` | 1,278 | ASIN×quarter sales, prices, CLIP PCs (raw: 167 ASINs, 2018Q1–2023Q1) |
+| `asin_joint_pcs_complete.csv` | 167 | 5 CLIP principal components per ASIN |
 | `asin_characteristics.csv` | 159 | Package weight (g) and import flag per ASIN |
+
+The estimation sample applies two filters (in `blp_three_models.R`): quarters through 2022Q3 only (`TIME_CUTOFF`), and ASINs present in ≥ 3 quarters. This yields the final panel of **1,164 observations, 159 ASINs, 19 quarters (2018Q1–2022Q3)** used in all models.
 
 **Not included:** `choice_set_with_state_and_region.csv` (148 MB raw individual choice data, source: Amazon review + product metadata). `asin_characteristics.csv` was pre-computed from it and is the only output needed to replicate all results.
 
@@ -214,8 +221,8 @@ Radford, A., Kim, J.W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S., Sastry, G
 If you use this code or data, please cite:
 
 ```
-Uzun, B. (2026). Demand Estimation with Unstructured Product Data: Evidence from Amazon's
-Toothpaste Market
+Uzun, B., & Huse, C. (2026). Demand Estimation with Unstructured Product Data:
+Evidence from Amazon's Toothpaste Market.
 Master's Thesis, Carl von Ossietzky Universität Oldenburg.
 https://github.com/brkuzn/clip-amazon-toothpaste-market
 ```

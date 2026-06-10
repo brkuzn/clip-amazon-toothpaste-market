@@ -1,0 +1,52 @@
+============================================================
+THREE BLP MODELS — FORMULAS
+============================================================
+
+SHARED SETUP:
+  α = ε_target / median(p_jt · (1 − s_jt))
+    = -2.6 / $8.4502 = -0.31005  [calibrated, not estimated]
+
+  Berry (1994) linearisation:
+    log(s_jt / s_0t) − ρ · log(s_{j|g,t}) = α·p_jt + β'x_jt + FE_t + ξ_jt
+
+  Covariates x_jt: pkg_size, joint_pc1-5, is_other, import_freight_shock
+  [joint_pc1-5 = first 5 PCs of CLIP image+text joint embeddings]
+
+  Bertrand MC inversion (Berry 1994):
+    mc = p + (Ω_pre ∘ Δ)^{−1} s
+    Δ_{jj} = α·s_j·[1/(1−ρ) − ρ·s_{j|g}/(1−ρ) − s_j]
+    Δ_{jk} = α·s_j·[−ρ·s_{k|g}/(1−ρ) − s_k]   [same nest]
+    Δ_{jk} = −α·s_j·s_k                           [diff nest]
+
+  Own-price elasticity:
+    ε_{jj} = α·p_j·[1/(1−ρ) − ρ·s_{j|g}/(1−ρ) − s_j]
+
+  Bertrand-Nash Merger Simulation:
+    (Same iterative algorithm as PyBLP compute_prices())
+    V_j(p) = δ_j_pre + α·(p_j − p_pre_j)   [non-price utility fixed]
+    Contraction: p_{t+1} = mc − (Ω_post ∘ Δ(p_t))^{−1} s(p_t)
+    hello → Colgate (firm_id_post) from 2020Q1
+
+------------------------------------------------------------
+MODEL 1: PLAIN LOGIT
+  ρ = 0  (no nesting)
+  All ASINs compete symmetrically within each quarter-market
+  Markup: μ_j ≈ −1 / α·(1−s_j) ≈ $2.82 (uniform across products)
+  Diversion ratio: DR_{j→k} = s_k / (1 − s_j)  [share-proportional only]
+
+------------------------------------------------------------
+MODEL 2: BRAND-NESTED LOGIT
+  Nests = brand groups (all hello ASINs in one nest, etc.)
+  ρ* = 0.35  [concentrated OLS profile]
+  Higher ρ → stronger within-brand substitution
+  Diversion: cross-brand reduced, within-brand boosted by ρ
+
+------------------------------------------------------------
+MODEL 3: CLIP-NESTED LOGIT  [THESIS CONTRIBUTION]
+  Nests = K=5 k-means clusters on CLIP joint_pc1-5
+  ρ* = 0.67  [concentrated OLS profile]
+  64.1% of PC1-5 variance explained by clusters
+  Clusters group embedding-similar ASINs (attribute-based nests)
+  Diversion: products close in CLIP space substitute more,
+             regardless of brand identity
+============================================================

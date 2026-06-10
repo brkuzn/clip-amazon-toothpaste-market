@@ -24,3 +24,6 @@ blp_cache/
 *fix12*.csv
 *clip_nesting*.csv
 *clip_nests_assign*.csv
+
+# LaTeX build logs
+*.log

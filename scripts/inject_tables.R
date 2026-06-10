@@ -95,7 +95,7 @@ k1 <- kbl(t1, format="html", escape=TRUE, booktabs=TRUE,
   column_spec(1, bold=TRUE) |>
   footnote(
     general = paste0(
-      "1,164 ASIN&times;quarter observations, 19 quarters (2019Q1&ndash;2022Q3). ",
+      "1,164 ASIN&times;quarter observations, 19 quarters (2018Q1&ndash;2022Q3). ",
       "Mean/Median/SD of price (USD), market share (&times;1000), package weight (g). ",
       "Dominant brand = modal brand by ASIN count within cluster. ",
       "K=5 k-means on CLIP joint PC<sub>1&ndash;5</sub> (seed 42, 50 restarts)."

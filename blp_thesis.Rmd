@@ -103,6 +103,9 @@ coef3     <- fread(file.path(out_dir, "model3_coefficients.csv"))
 merger    <- fread(file.path(out_dir, "three_models_merger_summary.csv"))
 rmse_dt   <- fread(file.path(out_dir, "three_models_rmse.csv"))
 ksens_dt  <- fread(file.path(out_dir, "clip_k_sensitivity.csv"))
+asin1     <- fread(file.path(out_dir, "model1_asin_results.csv"))
+asin2     <- fread(file.path(out_dir, "model2_asin_results.csv"))
+asin3     <- fread(file.path(out_dir, "model3_asin_results.csv"))
 
 # Scalar parameters (must match blp_three_models.R)
 EPS_TARGET <- -2.62
@@ -115,9 +118,13 @@ RHO_M3     <- 0.67
 
 # Data and Panel Construction
 
-The dataset is an ASIN x quarter panel covering the Amazon US toothpaste market from 2019Q1 to 2022Q3 (19 quarters, 159 ASINs, 1,164 observations). Market shares are constructed using revealed-preference purchase data. Market size $M_t$ is set to $(1 + \lambda) \cdot \sum_j q_{jt}$ with $\lambda = 13.93$, implying an outside-good share of approximately 93%.
+The dataset is an ASIN x quarter panel covering the Amazon US toothpaste market from 2018Q1 to 2022Q3 (19 quarters, 159 ASINs, 1,164 observations). Market shares are constructed using revealed-preference purchase data. Market size $M_t$ is set to $(1 + \lambda) \cdot \sum_j q_{jt}$ with $\lambda = 13.93$, implying an outside-good share of approximately 93%.
 
-CLIP (Contrastive Language-Image Pre-training; Radford et al. 2021) embeddings are computed for each ASIN using its product image and listing text. A joint 512-dimensional embedding is reduced to five principal components (PC1–PC5), which together explain 71.2% of the within-cluster variance. Five clusters are obtained via $K$-means ($K=5$, 50 restarts, seed 42).
+CLIP (Contrastive Language-Image Pre-training; Radford et al. 2021) embeddings are computed once per ASIN from its product image and listing text using `clip-vit-base-patch32`. Each modality's 512-dimensional embedding is first reduced to five modality-specific principal components; a joint PCA on the ten standardised columns (5 image + 5 text PCs) then yields five joint PCs (PC1–PC5) per ASIN. The joint PCA is fitted on the 155 ASINs with both modalities. Loadings are balanced across modalities — the image share of every joint component lies between 48.6% and 51.4% — confirming that neither modality dominates the product-space representation. Five clusters are obtained via $K$-means ($K=5$, 50 restarts, seed 42), which explain 71.2% of the joint-PC variance.
+
+Embeddings are static over the sample window. Established Amazon listings change their images and titles only marginally over 2018–2022, so re-extracting embeddings per quarter would produce near-identical vectors; the identifying variation is **cross-sectional** — ASINs within the same brand differ genuinely in packaging and benefit claims — and this is exactly the variation recovered by moving from brand-level to ASIN-level data. Time-varying demand conditions are absorbed by quarter fixed effects.
+
+Twelve ASINs lack an image embedding (image retrieval failed at extraction time) but have valid text embeddings. Rather than dropping them or imputing brand means, they are projected into the joint PC space from their standardised text components, with image dimensions set to the cross-sectional mean (zero in standardised space). These ASINs span Crest (4), Sensodyne (2), Tom's of Maine (2), hello (2), and Other (2), and all clear the three-quarter inclusion filter. Dropping them would distort brand-level market shares and remove hello observations inside the merger simulation window; brand-mean imputation was rejected because it would reintroduce precisely the aggregation that the ASIN-level design is meant to avoid.
 
 ---
 
@@ -158,12 +165,12 @@ if (is_pdf) {
                     "$\\bar{s}\\times10^3$","$\\tilde{s}\\times10^3$","$\\sigma_s\\times10^3$",
                     "$\\bar{w}$","$\\tilde{w}$","$\\sigma_w$")
   hdr_above  <- c(" "=3, "Price (USD)"=3, "Mkt. Share (x1000)"=3, "Pkg. Size (g)"=3)
-  t1_footnote <- "Panel: 1,164 ASIN x quarter observations, 19 quarters (2019Q1--2022Q3). Mean/Median/SD of price in USD, market share scaled x1000, package weight in grams. Dominant brand = modal brand by ASIN count within cluster."
+  t1_footnote <- "Panel: 1,164 ASIN x quarter observations, 19 quarters (2018Q1--2022Q3). Mean/Median/SD of price in USD, market share scaled x1000, package weight in grams. Dominant brand = modal brand by ASIN count within cluster."
 } else {
   col_names_t1 <- c("Cluster","Dom. Brand","N ASINs",
                     "Mean","Median","SD","Mean","Median","SD","Mean","Median","SD")
   hdr_above  <- c(" "=3, "Price ($)"=3, "Mkt. Share (x1000)"=3, "Pkg. Size (g)"=3)
-  t1_footnote <- "Panel: 1,164 ASIN x quarter observations, 19 quarters (2019Q1-2022Q3). Mean/Median/SD of price in USD, market share scaled x1000, package weight in grams. Dominant brand = modal brand by ASIN count within cluster."
+  t1_footnote <- "Panel: 1,164 ASIN x quarter observations, 19 quarters (2018Q1-2022Q3). Mean/Median/SD of price in USD, market share scaled x1000, package weight in grams. Dominant brand = modal brand by ASIN count within cluster."
 }
 
 t1 <- tab1_raw[, .(
@@ -380,6 +387,82 @@ kbl(tab3_flat,
       "Nash (post): equilibrium under merged ownership. ",
       "Dp = Nash (post) minus Nash (pre). ",
       "MC inverted from pre-merger FOC and held fixed."
+    ),
+    escape        = TRUE,
+    general_title = "Notes: "
+  )
+```
+
+\vspace{1em}
+
+The central economic-plausibility comparison across the three models is summarised below. The share of observations with **negative implied marginal costs** is the key diagnostic: when the demand system understates substitutability, the Bertrand inversion attributes implausibly large markups, pushing recovered costs below zero. CLIP-based nesting reduces the negative-MC rate from 8.6% to 1.7% — a five-fold improvement over both the plain logit and brand nesting — while simultaneously delivering the largest RSS improvement.
+
+```{r table4}
+pct4 <- if (is_pdf) "\\%" else "%"
+
+mods4 <- list(
+  list(lab = "M1: Logit",        coef = coef1, res = asin1, mname = "Logit"),
+  list(lab = "M2: Brand-Nested", coef = coef2, res = asin2, mname = "Brand-Nested"),
+  list(lab = "M3: CLIP-Nested",  coef = coef3, res = asin3, mname = "CLIP-Nested")
+)
+# RSS drop vs rho=0 from the concentrated OLS profile (see Table 2)
+rss_drop4 <- c(NA, 3.1, 8.1)
+
+tab4 <- rbindlist(lapply(seq_along(mods4), function(i) {
+  m       <- mods4[[i]]
+  rho_i   <- m$coef[variable == "rho", beta]
+  neg_mc  <- 100 * mean(m$res$mc < 0, na.rm = TRUE)
+  lerner  <- 100 * median((m$res$price_observed - m$res$mc) / m$res$price_observed,
+                          na.rm = TRUE)
+  med_el  <- median(m$res$elas_own, na.rm = TRUE)
+  hello_e <- merger[model == m$mname & brand == "hello",   effect_pct]
+  colg_e  <- merger[model == m$mname & brand == "Colgate", effect_pct]
+  data.table(
+    Model    = m$lab,
+    rho      = sprintf("%.2f", rho_i),
+    elas     = sprintf("%.2f", med_el),
+    rss      = if (is.na(rss_drop4[i])) "---" else
+                 paste0(sprintf("%.1f", rss_drop4[i]), pct4),
+    neg_mc   = paste0(sprintf("%.1f", neg_mc), pct4),
+    lerner   = paste0(sprintf("%.1f", lerner), pct4),
+    hello_dp = paste0("+", sprintf("%.2f", hello_e), pct4),
+    colg_dp  = paste0("+", sprintf("%.3f", colg_e), pct4)
+  )
+}))
+
+col4 <- if (is_pdf) {
+  c("Model", "$\\rho^*$", "Med. $\\varepsilon_{jj}$", "RSS drop",
+    "Neg. MC \\%", "Med. Lerner", "hello $\\Delta p$", "Colgate $\\Delta p$")
+} else {
+  c("Model", "rho*", "Med. elasticity", "RSS drop",
+    "Neg. MC %", "Med. Lerner", "hello Dp", "Colgate Dp")
+}
+
+kbl(tab4,
+    col.names = col4,
+    format    = tbl_fmt,
+    booktabs  = TRUE,
+    escape    = FALSE,
+    caption   = "Cross-Model Comparison: Demand Fit and Economic Plausibility",
+    align     = c("l", "c", "c", "c", "c", "c", "c", "c")) |>
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    latex_options     = c("HOLD_position"),
+    font_size         = if (is_pdf) 9 else 13,
+    full_width        = if (is_pdf) TRUE else FALSE
+  ) |>
+  row_spec(3, bold = TRUE, background = "#D6EAD6") |>
+  footnote(
+    general = paste0(
+      "All statistics over the full estimation panel (1,164 ASIN x quarter observations) ",
+      "except merger effects (post-merger quarters 2020Q1--2022Q3). ",
+      "Med. elasticity = median own-price elasticity. ",
+      "RSS drop = reduction in residual sum of squares vs rho=0 from the concentrated OLS profile. ",
+      "Neg. MC = share of observations with negative implied marginal cost from the Bertrand inversion ",
+      "(lower = more economically plausible). ",
+      "Med. Lerner = median (p - mc)/p. ",
+      "hello / Colgate Dp = average post-merger Nash price effect. ",
+      "Bold/green row = preferred specification."
     ),
     escape        = TRUE,
     general_title = "Notes: "

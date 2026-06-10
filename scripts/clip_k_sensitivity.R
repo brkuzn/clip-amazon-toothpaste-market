@@ -8,7 +8,7 @@
 #
 # Exactly mirrors blp_three_models.R M3 logic (all demeaning and XtX_inv
 # computed inside run_for_k from pan after merge, matching row order).
-# K=6 must reproduce: rho*=0.60, RSS drop=6.7%, hello=+0.591%
+# K=5 must reproduce the main spec: rho*=0.67, RSS drop=8.1%, hello=+0.40%
 # ============================================================================
 library(data.table); library(lubridate); library(cluster)
 
@@ -298,7 +298,7 @@ cat(sprintf("  %-4s  %-8s  %-8s  %-7s  %-9s  %-8s  %-12s  %-12s\n",
 cat(strrep("-", 80), "\n")
 for (i in seq_len(nrow(res_dt))) {
   r <- res_dt[i]
-  marker <- if (r$K == 6) " ◄ current" else ""
+  marker <- if (r$K == 5) " <- selected" else ""
   cat(sprintf("  %-4d  %-8.1f  %-8.3f  %-7.2f  %-9.1f  %-8.1f  %-12.3f  %-12.3f%s\n",
       r$K, r$wcss, r$sil, r$rho_star, r$rss_drop, r$neg_mc,
       r$hello_eff, r$colgate_eff, marker))

@@ -86,6 +86,9 @@ m3 <- fread(file.path(out_dir, "model3_asin_results.csv"))
 panel <- merge(panel, m3[, .(asin, quarter, mc, price_nomerger, price_merger)],
                by=c("asin","quarter"), all.x=TRUE)
 
+# M3 nesting parameter (read from estimation output — never hardcode)
+rho_m3 <- fread(file.path(out_dir, "model3_coefficients.csv"))[variable == "rho", beta]
+
 cat("Data loaded:", nrow(panel), "obs\n")
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -210,10 +213,10 @@ fig1 <- ggplot(asin_level, aes(x=pc1, y=pc2)) +
   ) +
   labs(
     title    = "Figure 1: Product Space from CLIP Embeddings",
-    subtitle = "Each point = one ASIN  ·  PC1 & PC2 of CLIP joint image+text embeddings (5-PC basis, K=5 clusters)",
+    subtitle = "Each point = one ASIN  |  PC1 & PC2 of CLIP joint image+text embeddings (5-PC basis, K=5 clusters)",
     x        = "PC 1",
     y        = "PC 2",
-    caption  = "◆ hello (red)   ▲ Colgate (dark blue)   Other brands shown by CLIP cluster colour\nhello and Colgate occupy different clusters → lower diversion ratio → smaller predicted merger effect"
+    caption  = "Diamonds = hello (red)   Triangles = Colgate (dark blue)   Other brands shown by CLIP cluster colour\nhello and Colgate occupy different clusters -> lower diversion ratio -> smaller predicted merger effect"
   ) +
   theme_minimal(base_size=11) +
   theme(
@@ -277,7 +280,7 @@ fig2a <- ggplot(price_long, aes(x=qtr_num, y=price,
   scale_x_continuous(breaks=seq_along(post_qtrs), labels=post_qtrs) +
   facet_wrap(~brand, scales="free_y", ncol=2) +
   labs(y="Nash equilibrium price ($)", x=NULL,
-       subtitle="Observed prices omitted from top panel — Nash range ($4–$8) is much narrower than\nobserved price swings ($4–$10), which would compress the counterfactual divergence") +
+       subtitle="Observed prices omitted from top panel - Nash range ($4-$8) is much narrower than\nobserved price swings ($4-$10), which would compress the counterfactual divergence") +
   theme_minimal(base_size=10) +
   theme(
     legend.position = "bottom",
@@ -310,9 +313,9 @@ fig2b <- ggplot(price_avg, aes(x=match(quarter, post_qtrs),
 library(patchwork)
 fig2 <- (fig2a / fig2b) +
   plot_annotation(
-    title    = "Figure 2: Price Trajectories — Merger vs No-Merger Counterfactual",
-    subtitle = "Model 3 (CLIP-Nested Logit, ρ*=0.60) · Post-merger window (2020Q1–2022Q3) · MCs fixed at pre-merger averages",
-    caption  = "No-Merger Nash: Bertrand equilibrium under pre-merger ownership (Ω_pre)\nMerger Nash: Bertrand equilibrium under merged ownership (Ω_post)\nEffect = (Merger Nash − No-Merger Nash) / No-Merger Nash × 100%",
+    title    = "Figure 2: Price Trajectories - Merger vs No-Merger Counterfactual",
+    subtitle = sprintf("Model 3 (CLIP-Nested Logit, rho*=%.2f) | Post-merger window (2020Q1-2022Q3) | MCs fixed at pre-merger averages", rho_m3),
+    caption  = "No-Merger Nash: Bertrand equilibrium under pre-merger ownership (Omega_pre)\nMerger Nash: Bertrand equilibrium under merged ownership (Omega_post)\nEffect = (Merger Nash - No-Merger Nash) / No-Merger Nash x 100%",
     theme    = theme(
       plot.title    = element_text(face="bold", size=12),
       plot.subtitle = element_text(size=9, colour="grey40"),

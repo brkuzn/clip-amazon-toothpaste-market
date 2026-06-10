@@ -1696,7 +1696,7 @@ in BLP Merger Simulation</h1>
 <h3 class="subtitle">Evidence from the hello→Colgate Acquisition in the
 US Toothpaste Market</h3>
 <h4 class="author">Burak Uzun</h4>
-<h4 class="date">May 2026</h4>
+<h4 class="date">June 2026</h4>
 
 </div>
 
@@ -1706,17 +1706,43 @@ US Toothpaste Market</h3>
 <h1><span class="header-section-number">1</span> Data and Panel
 Construction</h1>
 <p>The dataset is an ASIN x quarter panel covering the Amazon US
-toothpaste market from 2019Q1 to 2022Q3 (19 quarters, 159 ASINs, 1,164
+toothpaste market from 2018Q1 to 2022Q3 (19 quarters, 159 ASINs, 1,164
 observations). Market shares are constructed using revealed-preference
 purchase data. Market size <span class="math inline">\(M_t\)</span> is
 set to <span class="math inline">\((1 + \lambda) \cdot \sum_j
 q_{jt}\)</span> with <span class="math inline">\(\lambda =
 13.93\)</span>, implying an outside-good share of approximately 93%.</p>
 <p>CLIP (Contrastive Language-Image Pre-training; Radford et al. 2021)
-embeddings are computed for each ASIN using its product image and
-listing text. A joint 512-dimensional embedding is reduced to five
-principal components (PC1–PC5), which together explain 71.2% of the
-within-cluster variance. Five clusters are obtained via <span class="math inline">\(K\)</span>-means (<span class="math inline">\(K=5\)</span>, 50 restarts, seed 42).</p>
+embeddings are computed once per ASIN from its product image and listing
+text using <code>clip-vit-base-patch32</code>. Each modality’s
+512-dimensional embedding is first reduced to five modality-specific
+principal components; a joint PCA on the ten standardised columns (5
+image + 5 text PCs) then yields five joint PCs (PC1–PC5) per ASIN. The
+joint PCA is fitted on the 155 ASINs with both modalities. Loadings are
+balanced across modalities — the image share of every joint component
+lies between 48.6% and 51.4% — confirming that neither modality
+dominates the product-space representation. Five clusters are obtained
+via <span class="math inline">\(K\)</span>-means (<span class="math inline">\(K=5\)</span>, 50 restarts, seed 42), which explain
+71.2% of the joint-PC variance.</p>
+<p>Embeddings are static over the sample window. Established Amazon
+listings change their images and titles only marginally over 2018–2022,
+so re-extracting embeddings per quarter would produce near-identical
+vectors; the identifying variation is <strong>cross-sectional</strong> —
+ASINs within the same brand differ genuinely in packaging and benefit
+claims — and this is exactly the variation recovered by moving from
+brand-level to ASIN-level data. Time-varying demand conditions are
+absorbed by quarter fixed effects.</p>
+<p>Twelve ASINs lack an image embedding (image retrieval failed at
+extraction time) but have valid text embeddings. Rather than dropping
+them or imputing brand means, they are projected into the joint PC space
+from their standardised text components, with image dimensions set to
+the cross-sectional mean (zero in standardised space). These ASINs span
+Crest (4), Sensodyne (2), Tom’s of Maine (2), hello (2), and Other (2),
+and all clear the three-quarter inclusion filter. Dropping them would
+distort brand-level market shares and remove hello observations inside
+the merger simulation window; brand-mean imputation was rejected because
+it would reintroduce precisely the aggregation that the ASIN-level
+design is meant to avoid.</p>
 <hr />
 </div>
 <div id="demand-specification" class="section level1" number="2">
@@ -2038,7 +2064,7 @@ Other (hello)
 <tr>
 <td style="padding: 0; " colspan="100%">
 <sup></sup> Panel: 1,164 ASIN x quarter observations, 19 quarters
-(2019Q1-2022Q3). Mean/Median/SD of price in USD, market share scaled
+(2018Q1-2022Q3). Mean/Median/SD of price in USD, market share scaled
 x1000, package weight in grams. Dominant brand = modal brand by ASIN
 count within cluster.
 </td>
@@ -2655,6 +2681,147 @@ Sensodyne
 merger parties. Nash (pre): Bertrand-Nash under pre-merger ownership.
 Nash (post): equilibrium under merged ownership. Dp = Nash (post) minus
 Nash (pre). MC inverted from pre-merger FOC and held fixed.
+</td>
+</tr>
+</tfoot>
+</table>
+<p>The central economic-plausibility comparison across the three models
+is summarised below. The share of observations with <strong>negative
+implied marginal costs</strong> is the key diagnostic: when the demand
+system understates substitutability, the Bertrand inversion attributes
+implausibly large markups, pushing recovered costs below zero.
+CLIP-based nesting reduces the negative-MC rate from 8.6% to 1.7% — a
+five-fold improvement over both the plain logit and brand nesting —
+while simultaneously delivering the largest RSS improvement.</p>
+<table class="table table-striped table-hover table-condensed" style="font-size: 13px; width: auto !important; margin-left: auto; margin-right: auto;border-bottom: 0;">
+<caption style="font-size: initial !important;">
+Cross-Model Comparison: Demand Fit and Economic Plausibility
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+Model
+</th>
+<th style="text-align:center;">
+rho*
+</th>
+<th style="text-align:center;">
+Med. elasticity
+</th>
+<th style="text-align:center;">
+RSS drop
+</th>
+<th style="text-align:center;">
+Neg. MC %
+</th>
+<th style="text-align:center;">
+Med. Lerner
+</th>
+<th style="text-align:center;">
+hello Dp
+</th>
+<th style="text-align:center;">
+Colgate Dp
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+M1: Logit
+</td>
+<td style="text-align:center;">
+0.00
+</td>
+<td style="text-align:center;">
+-2.62
+</td>
+<td style="text-align:center;">
+—
+</td>
+<td style="text-align:center;">
+8.6%
+</td>
+<td style="text-align:center;">
+38.5%
+</td>
+<td style="text-align:center;">
++1.23%
+</td>
+<td style="text-align:center;">
++0.104%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+M2: Brand-Nested
+</td>
+<td style="text-align:center;">
+0.35
+</td>
+<td style="text-align:center;">
+-3.83
+</td>
+<td style="text-align:center;">
+3.1%
+</td>
+<td style="text-align:center;">
+8.6%
+</td>
+<td style="text-align:center;">
+38.5%
+</td>
+<td style="text-align:center;">
++1.27%
+</td>
+<td style="text-align:center;">
++0.104%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;background-color: rgba(214, 234, 214, 255) !important;">
+M3: CLIP-Nested
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(214, 234, 214, 255) !important;">
+0.67
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(214, 234, 214, 255) !important;">
+-7.31
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(214, 234, 214, 255) !important;">
+8.1%
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(214, 234, 214, 255) !important;">
+1.7%
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(214, 234, 214, 255) !important;">
+28.9%
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(214, 234, 214, 255) !important;">
++0.40%
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(214, 234, 214, 255) !important;">
++0.018%
+</td>
+</tr>
+</tbody>
+<tfoot>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<span style="font-style: italic;">Notes: </span>
+</td>
+</tr>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<sup></sup> All statistics over the full estimation panel (1,164 ASIN x
+quarter observations) except merger effects (post-merger quarters
+2020Q1–2022Q3). Med. elasticity = median own-price elasticity. RSS drop
+= reduction in residual sum of squares vs rho=0 from the concentrated
+OLS profile. Neg. MC = share of observations with negative implied
+marginal cost from the Bertrand inversion (lower = more economically
+plausible). Med. Lerner = median (p - mc)/p. hello / Colgate Dp =
+average post-merger Nash price effect. Bold/green row = preferred
+specification.
 </td>
 </tr>
 </tfoot>
