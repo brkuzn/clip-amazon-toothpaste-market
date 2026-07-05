@@ -1,0 +1,4 @@
+model,dcs_cents_per_consumer,dcs_total_per_quarter
+M1: Logit,-0.0254,-1
+M2: Brand-Nested,-0.0266,-1
+M3: CLIP-Nested,-0.0085,0

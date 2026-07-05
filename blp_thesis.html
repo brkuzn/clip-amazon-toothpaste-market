@@ -1705,7 +1705,7 @@ border-radius: 0px;
 Data</h1>
 <h3 class="subtitle">Evidence from Amazon’s Toothpaste Market</h3>
 <h4 class="author">Burak Uzun</h4>
-<h4 class="date">June 2026</h4>
+<h4 class="date">July 2026</h4>
 <div class="abstract">
 <p class="abstract">Abstract</p>
 <p>Merger simulation hinges on correctly measuring substitution
@@ -2478,6 +2478,124 @@ count within cluster.
 </tr>
 </tfoot>
 </table>
+<p>Beyond price and share statistics, the clusters are directly
+interpretable from the listing content itself. Table 3 reports, for each
+cluster, the listing-vocabulary terms that are most over-represented
+relative to the whole category (by lift: the share of the cluster’s
+ASINs whose title or benefit text contains the term, divided by the
+category-wide share). The vocabulary confirms that the clusters track
+economically meaningful positioning rather than arbitrary embedding
+geometry.</p>
+<table class="table table-striped table-hover table-condensed" style="font-size: 13px; width: auto !important; margin-left: auto; margin-right: auto;border-bottom: 0;">
+<caption style="font-size: initial !important;">
+Distinctive Listing Vocabulary by CLIP Cluster
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+Cluster
+</th>
+<th style="text-align:left;">
+Dominant brand
+</th>
+<th style="text-align:right;">
+N ASINs
+</th>
+<th style="text-align:left;">
+Most over-represented listing terms (by lift)
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+C1
+</td>
+<td style="text-align:left;">
+Sensodyne
+</td>
+<td style="text-align:right;">
+29
+</td>
+<td style="text-align:left;">
+sensodyne, parodontax, extra, bleeding, pronamel, reharden
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C2
+</td>
+<td style="text-align:left;">
+Colgate
+</td>
+<td style="text-align:right;">
+33
+</td>
+<td style="text-align:left;">
+optic, hydrogen, max, benefits, extreme, frosty
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C3
+</td>
+<td style="text-align:left;">
+Crest
+</td>
+<td style="text-align:right;">
+29
+</td>
+<td style="text-align:left;">
+scope, pro, radiant, brilliance, eraser, glamorous
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C4
+</td>
+<td style="text-align:left;">
+Tom’s of Maine
+</td>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:left;">
+maine, tom’s, children’s, silly, animals, not
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C5
+</td>
+<td style="text-align:left;">
+Other
+</td>
+<td style="text-align:right;">
+55
+</td>
+<td style="text-align:left;">
+sls, activated, mouth, orajel, remineralizing, anti
+</td>
+</tr>
+</tbody>
+<tfoot>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<span style="font-style: italic;">Notes: </span>
+</td>
+</tr>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<sup></sup> Terms from ASIN titles and benefit descriptions
+(lower-cased, unit and category stopwords removed). Lift = share of the
+cluster’s ASINs containing the term divided by the category-wide share;
+terms shown appear in at least two of the cluster’s ASINs and have lift
+above 1.5, ranked by lift. Cluster assignment identical to the
+estimation (K = 5, seed 42).
+</td>
+</tr>
+</tfoot>
+</table>
 <p>Figure 2 visualises the CLIP product space: hello’s listings sit in
 the natural/specialty cluster on the left of the embedding plane while
 Colgate’s cluster occupies the opposite region, making the low implied
@@ -2528,11 +2646,28 @@ calibrated to match a target median own-price elasticity:</p>
 Bijmolt, van Heerde &amp; Pieters (2005), consistent with structural BLP
 estimates for analogous packaged-goods categories (Nevo 2001; Draganska
 &amp; Jain 2006).</p>
-<p><strong>Sequential calibration note.</strong> Since <span class="math inline">\(\alpha\)</span> is calibrated at <span class="math inline">\(\rho=0\)</span>, the target elasticity <span class="math inline">\(-2.62\)</span> is the logit median. At the
-profiled nesting parameters (<span class="math inline">\(\rho^*=0.35\)</span> for M2, <span class="math inline">\(\rho^*=0.67\)</span> for M3), the nested-logit
-formula amplifies own-price sensitivity by approximately <span class="math inline">\(1/(1-\rho^*)\)</span>, yielding implied median
-elasticities of approximately <span class="math inline">\(-4.0\)</span>
-(M2) and <span class="math inline">\(-7.9\)</span> (M3).</p>
+<p><strong>Sequential calibration note.</strong> Since <span class="math inline">\(\alpha\)</span> is calibrated at <span class="math inline">\(\rho=0\)</span>, the target elasticity <span class="math inline">\(-2.62\)</span> is the plain-logit median. At the
+profiled nesting parameters, the nested-logit elasticity formula
+amplifies own-price sensitivity by roughly <span class="math inline">\(1/(1-\rho^{*})\)</span>, so the same <span class="math inline">\(\alpha\)</span> implies median own-price
+elasticities of <span class="math inline">\(-3.83\)</span> under M2 and
+<span class="math inline">\(-7.31\)</span> under M3 (computed
+observation by observation; the <span class="math inline">\(1/(1-\rho^{*})\)</span> back-of-envelope gives
+<span class="math inline">\(-4.0\)</span> and <span class="math inline">\(-7.9\)</span>). These larger magnitudes are not in
+tension with the calibration target. The Bijmolt, van Heerde, and
+Pieters (2005) mean is dominated by brand- and aggregate-level
+estimates, whereas the products here are individual ASINs, which face
+much closer substitutes than a brand aggregate does – finer product
+definitions mechanically imply more elastic demand. Structural estimates
+at the product-line level are correspondingly larger: Draganska and Jain
+(2006) report own-price elasticities between <span class="math inline">\(-2.45\)</span> and <span class="math inline">\(-6.25\)</span>, a range that contains the
+calibration target and most of the nested models’ implied values.
+Appendix C reports a robustness exercise that rescales <span class="math inline">\(\alpha\)</span> within each nested model so that
+the model’s own implied median equals <span class="math inline">\(-2.62\)</span> at its profiled <span class="math inline">\(\rho^{*}\)</span>: doing so shrinks <span class="math inline">\(|\alpha|\)</span>, inflates Bertrand markups, and
+drives the negative-cost rate far above even the plain-logit level. In
+other words, ASIN-level demand must be substantially more elastic than
+the aggregate benchmark for observed prices to be rationalizable at all
+– the cost side independently validates the more elastic implied
+elasticities.</p>
 </div>
 <div id="rho-selection-concentrated-ols-profile" class="section level2" number="4.3">
 <h2><span class="header-section-number">4.3</span> <span class="math inline">\(\rho^*\)</span> Selection — Concentrated OLS
@@ -2562,6 +2697,22 @@ s_j\!\left[\tfrac{1}{1-\rho} - \tfrac{\rho}{1-\rho}s_{j|g} - s_j\right],
 \quad \Delta_{jk}^{\text{same}} = \alpha
 s_j\!\left[-\tfrac{\rho}{1-\rho}s_{k|g} - s_k\right], \quad
 \Delta_{jk}^{\text{diff}} = -\alpha s_j s_k\]</span></p>
+<p><strong>Remark (brand nests and ownership).</strong> Marginal-cost
+recovery interacts with the nest assignment in one important, exact way.
+When every nest lies wholly inside one firm – as with brand nests, where
+each firm owns complete brands – the nested-logit Bertrand first-order
+conditions admit the same solution as plain logit: markups are uniform
+within each firm at <span class="math inline">\(1/(|\alpha|(1-S_f))\)</span>, where <span class="math inline">\(S_f\)</span> is the firm’s inside share, for
+<em>any</em> value of <span class="math inline">\(\rho\)</span> (proof
+in Appendix D). Consequently, M1 and M2 recover <em>identical</em>
+marginal costs at every observation, identical Lerner indices, and
+identical negative-cost rates. Brand nesting is therefore incapable of
+repairing the cost side of the model in this market by construction;
+only a nest assignment that cuts across ownership boundaries – such as
+the CLIP clusters, which group ASINs of different firms – can change
+recovered costs. The counterfactual equilibria of M1 and M2 still differ
+slightly, because the share <em>functions</em> <span class="math inline">\(s(p)\)</span> differ even though markups at
+observed shares coincide.</p>
 <p>Marginal costs are averaged per ASIN across pre-merger quarters and
 held fixed in both counterfactuals. Holding costs at pre-merger values
 serves two purposes: it embodies the standard no-efficiencies assumption
@@ -2597,7 +2748,7 @@ equivalence.</p>
 <h1><span class="header-section-number">5</span> Results</h1>
 <div id="demand-estimates" class="section level2" number="5.1">
 <h2><span class="header-section-number">5.1</span> Demand Estimates</h2>
-<p>Table 3 presents the demand parameters for all three models,
+<p>Table 4 presents the demand parameters for all three models,
 separating the calibrated <span class="math inline">\(\alpha\)</span>
 from the estimated <span class="math inline">\(\boldsymbol{\beta}\)</span> and the profiled <span class="math inline">\(\rho^{*}\)</span>. Brand nesting yields <span class="math inline">\(\rho^{*}=0.35\)</span> with a 3.1% RSS improvement
 over plain logit; CLIP nesting yields <span class="math inline">\(\rho^{*}=0.67\)</span> with an 8.1% improvement.
@@ -2781,16 +2932,16 @@ Yes
 </tr>
 <tr>
 <td style="text-align:left;">
-Implied median elasticity
+Median implied elasticity
 </td>
 <td style="text-align:center;">
 -2.62
 </td>
 <td style="text-align:center;">
-approx -4.0
+-3.83
 </td>
 <td style="text-align:center;">
-approx -7.9
+-7.31
 </td>
 </tr>
 <tr>
@@ -2829,7 +2980,7 @@ Grid-searched on {0, 0.01, …, 0.90}; rho=0 fixed for M1.
 <div id="own-price-elasticities-by-brand" class="section level2" number="5.2">
 <h2><span class="header-section-number">5.2</span> Own-Price
 Elasticities by Brand</h2>
-<p>Table 4 reports median own-price elasticities by brand group for each
+<p>Table 5 reports median own-price elasticities by brand group for each
 model. Two patterns are worth noting. First, within each model,
 elasticities scale with price levels – the nested-logit own-price
 elasticity is proportional to <span class="math inline">\(\alpha
@@ -3089,10 +3240,122 @@ parties.
 </tfoot>
 </table>
 </div>
-<div id="merger-counterfactuals" class="section level2" number="5.3">
-<h2><span class="header-section-number">5.3</span> Merger
+<div id="diversion-ratios" class="section level2" number="5.3">
+<h2><span class="header-section-number">5.3</span> Diversion Ratios</h2>
+<p>The merger question turns on where hello’s demand goes when its
+prices rise. Table 6 reports diversion ratios <span class="math inline">\(DR_{j \to k} = -(\partial s_k / \partial p_j) /
+(\partial s_j / \partial p_j)\)</span> from hello ASINs, aggregated into
+fixed reporting buckets (share-weighted across hello products and
+pre-merger quarters).</p>
+<table class="table table-striped table-hover table-condensed" style="font-size: 13px; width: auto !important; margin-left: auto; margin-right: auto;border-bottom: 0;">
+<caption style="font-size: initial !important;">
+Diversion from hello by Destination (%)
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+Model
+</th>
+<th style="text-align:right;">
+To Colgate
+</th>
+<th style="text-align:right;">
+To rest of hello’s CLIP cluster
+</th>
+<th style="text-align:right;">
+To other inside goods
+</th>
+<th style="text-align:right;">
+To outside good
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+M1: Logit
+</td>
+<td style="text-align:right;">
+1.16
+</td>
+<td style="text-align:right;">
+1.49
+</td>
+<td style="text-align:right;">
+3.88
+</td>
+<td style="text-align:right;">
+93.47
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+M2: Brand-Nested
+</td>
+<td style="text-align:right;">
+0.93
+</td>
+<td style="text-align:right;">
+1.20
+</td>
+<td style="text-align:right;">
+22.41
+</td>
+<td style="text-align:right;">
+75.45
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;background-color: rgba(214, 234, 214, 255) !important;">
+M3: CLIP-Nested
+</td>
+<td style="text-align:right;font-weight: bold;background-color: rgba(214, 234, 214, 255) !important;">
+0.41
+</td>
+<td style="text-align:right;font-weight: bold;background-color: rgba(214, 234, 214, 255) !important;">
+58.14
+</td>
+<td style="text-align:right;font-weight: bold;background-color: rgba(214, 234, 214, 255) !important;">
+8.39
+</td>
+<td style="text-align:right;font-weight: bold;background-color: rgba(214, 234, 214, 255) !important;">
+33.06
+</td>
+</tr>
+</tbody>
+<tfoot>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<span style="font-style: italic;">Notes: </span>
+</td>
+</tr>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<sup></sup> Share-weighted average across hello ASINs and pre-merger
+quarters (2018Q1–2019Q4), computed from each model’s demand Jacobian at
+observed shares with the calibrated alpha and the model’s profiled rho*.
+Reporting buckets are fixed across models: Colgate-brand products,
+remaining products in hello’s CLIP cluster (C5), all other inside goods,
+and the outside good. Rows may not sum to 100 due to rounding.
+</td>
+</tr>
+</tfoot>
+</table>
+<p>The three demand systems tell three different stories about the same
+market. Under plain logit, diversion is proportional to market shares,
+so 93% of hello’s marginal demand flows to the outside good and only
+1.2% reaches Colgate. Brand nesting redirects substitution toward
+hello’s own sister ASINs but leaves cross-brand diversion
+share-proportional. Under CLIP nesting, 58% of hello’s lost demand
+diverts to the other natural/specialty products in its cluster, while
+diversion to Colgate falls to 0.4% – the low-diversion configuration
+that drives the small simulated merger effect in the next
+subsection.</p>
+</div>
+<div id="merger-counterfactuals" class="section level2" number="5.4">
+<h2><span class="header-section-number">5.4</span> Merger
 Counterfactuals</h2>
-<p>Table 5 reports the merger counterfactuals: observed prices,
+<p>Table 7 reports the merger counterfactuals: observed prices,
 recovered marginal costs, the no-merger Nash equilibrium, the merger
 Nash equilibrium, and the implied price effect <span class="math inline">\(\Delta p\)</span> for the merging parties and the
 largest rivals. Under plain logit, where diversion is proportional to
@@ -3527,8 +3790,8 @@ near zero.
 </p>
 </div>
 </div>
-<div id="cross-model-comparison" class="section level2" number="5.4">
-<h2><span class="header-section-number">5.4</span> Cross-Model
+<div id="cross-model-comparison" class="section level2" number="5.5">
+<h2><span class="header-section-number">5.5</span> Cross-Model
 Comparison</h2>
 <p>The central economic-plausibility comparison across the three models
 is summarised below. The share of observations with <strong>negative
@@ -3536,8 +3799,14 @@ implied marginal costs</strong> is the key diagnostic: when the demand
 system understates substitutability, the Bertrand inversion attributes
 implausibly large markups, pushing recovered costs below zero.
 CLIP-based nesting reduces the negative-MC rate from 8.6% to 1.7% — a
-five-fold improvement over both the plain logit and brand nesting —
-while simultaneously delivering the largest RSS improvement.</p>
+five-fold improvement — while simultaneously delivering the largest RSS
+improvement. That M1 and M2 display <em>exactly</em> the same
+negative-cost rate, cost levels, and Lerner indices is not a
+coincidence: because brand nests coincide with ownership boundaries,
+brand-nested Bertrand markups are identical to plain-logit markups for
+any <span class="math inline">\(\rho\)</span> (Section 4.4 and Appendix
+D). The cost side of the model can only improve when nests cut across
+firms, which is precisely what CLIP clustering delivers.</p>
 <table class="table table-striped table-hover table-condensed" style="font-size: 13px; width: auto !important; margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption style="font-size: initial !important;">
 Cross-Model Comparison: Demand Fit and Economic Plausibility
@@ -3568,6 +3837,9 @@ hello Dp
 <th style="text-align:center;">
 Colgate Dp
 </th>
+<th style="text-align:center;">
+dCS
+</th>
 </tr>
 </thead>
 <tbody>
@@ -3596,6 +3868,9 @@ M1: Logit
 <td style="text-align:center;">
 +0.104%
 </td>
+<td style="text-align:center;">
+-25.4
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -3621,6 +3896,9 @@ M2: Brand-Nested
 </td>
 <td style="text-align:center;">
 +0.104%
+</td>
+<td style="text-align:center;">
+-26.6
 </td>
 </tr>
 <tr>
@@ -3648,6 +3926,9 @@ M3: CLIP-Nested
 <td style="text-align:center;font-weight: bold;background-color: rgba(214, 234, 214, 255) !important;">
 +0.018%
 </td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(214, 234, 214, 255) !important;">
+-8.5
+</td>
 </tr>
 </tbody>
 <tfoot>
@@ -3665,7 +3946,9 @@ quarter observations) except merger effects (post-merger quarters
 OLS profile. Neg. MC = share of observations with negative implied
 marginal cost from the Bertrand inversion (lower = more economically
 plausible). Med. Lerner = median (p - mc)/p. hello / Colgate Dp =
-average post-merger Nash price effect. Bold/green row = preferred
+average post-merger Nash price effect. dCS = mean change in consumer
+surplus, merger vs no-merger Nash, in cents per 1,000 consumers per
+quarter (nested-logit log-sum formula). Bold/green row = preferred
 specification.
 </td>
 </tr>
@@ -3713,6 +3996,13 @@ the qualitative conclusions – high <span class="math inline">\(\rho^{*}\)</spa
 hello effects – are stable across <span class="math inline">\(K =
 2\)</span> to <span class="math inline">\(10\)</span>, though point
 estimates move.</p>
+<p><strong>Sparse purchase counts.</strong> The crowdsourced panel
+records 2,787 toothpaste purchases across 1,164 ASIN x quarter cells – a
+median of one purchasing household per cell – so individual shares carry
+sampling noise. The three-quarter presence filter, quarterly
+aggregation, and the focus on cross-model <em>comparisons</em> (which
+hold the data fixed) mitigate this, but individual cell-level quantities
+should be read with appropriate caution.</p>
 <p><strong>External validity.</strong> The analysis covers one category
 on one platform around one merger. The pipeline, however, requires only
 listing content, purchase counts, and prices – data available for
@@ -4159,6 +4449,386 @@ transaction prices. Nash (merger) prices are used as the model
 prediction. “All” = all 847 ASIN <span class="math inline">\(\times\)</span> quarter observations in the
 post-merger period (2020Q1–2022Q3); hello = 35 obs.; Colgate = 172 obs.
 Pre-merger marginal costs are held fixed in both Nash simulations.</p>
+</div>
+<div id="appendix-c-robustness-checks" class="section level2 unnumbered">
+<h2 class="unnumbered">Appendix C: Robustness Checks</h2>
+<table class="table table-striped table-hover table-condensed" style="font-size: 13px; width: auto !important; margin-left: auto; margin-right: auto;">
+<caption style="font-size: initial !important;">
+Robustness: Market Size, Calibration Level, and Cost Window
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+Scenario
+</th>
+<th style="text-align:right;">
+lambda
+</th>
+<th style="text-align:right;">
+alpha
+</th>
+<th style="text-align:center;">
+rho*
+</th>
+<th style="text-align:right;">
+RSS drop
+</th>
+<th style="text-align:right;">
+Neg. MC %
+</th>
+<th style="text-align:right;">
+hello Dp
+</th>
+<th style="text-align:right;">
+Colgate Dp
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;font-weight: bold;">
+M1 baseline
+</td>
+<td style="text-align:right;font-weight: bold;">
+13.93
+</td>
+<td style="text-align:right;font-weight: bold;">
+-0.310
+</td>
+<td style="text-align:center;font-weight: bold;">
+0.00
+</td>
+<td style="text-align:right;font-weight: bold;">
+0.0%
+</td>
+<td style="text-align:right;font-weight: bold;">
+8.6%
+</td>
+<td style="text-align:right;font-weight: bold;">
++1.233%
+</td>
+<td style="text-align:right;font-weight: bold;">
++0.104%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+M1, market size x2
+</td>
+<td style="text-align:right;">
+27.86
+</td>
+<td style="text-align:right;">
+-0.310
+</td>
+<td style="text-align:center;">
+0.00
+</td>
+<td style="text-align:right;">
+0.0%
+</td>
+<td style="text-align:right;">
+8.4%
+</td>
+<td style="text-align:right;">
++0.634%
+</td>
+<td style="text-align:right;">
++0.054%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+M1, market size x5
+</td>
+<td style="text-align:right;">
+69.65
+</td>
+<td style="text-align:right;">
+-0.309
+</td>
+<td style="text-align:center;">
+0.00
+</td>
+<td style="text-align:right;">
+0.0%
+</td>
+<td style="text-align:right;">
+8.4%
+</td>
+<td style="text-align:right;">
++0.258%
+</td>
+<td style="text-align:right;">
++0.022%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+M1, market size x10
+</td>
+<td style="text-align:right;">
+139.30
+</td>
+<td style="text-align:right;">
+-0.309
+</td>
+<td style="text-align:center;">
+0.00
+</td>
+<td style="text-align:right;">
+0.0%
+</td>
+<td style="text-align:right;">
+8.4%
+</td>
+<td style="text-align:right;">
++0.130%
+</td>
+<td style="text-align:right;">
++0.011%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;">
+M3 baseline
+</td>
+<td style="text-align:right;font-weight: bold;">
+13.93
+</td>
+<td style="text-align:right;font-weight: bold;">
+-0.310
+</td>
+<td style="text-align:center;font-weight: bold;">
+0.67
+</td>
+<td style="text-align:right;font-weight: bold;">
+8.1%
+</td>
+<td style="text-align:right;font-weight: bold;">
+1.7%
+</td>
+<td style="text-align:right;font-weight: bold;">
++0.404%
+</td>
+<td style="text-align:right;font-weight: bold;">
++0.018%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+M3, market size x2
+</td>
+<td style="text-align:right;">
+27.86
+</td>
+<td style="text-align:right;">
+-0.310
+</td>
+<td style="text-align:center;">
+0.67
+</td>
+<td style="text-align:right;">
+8.1%
+</td>
+<td style="text-align:right;">
+1.6%
+</td>
+<td style="text-align:right;">
++0.211%
+</td>
+<td style="text-align:right;">
++0.010%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+M3, market size x5
+</td>
+<td style="text-align:right;">
+69.65
+</td>
+<td style="text-align:right;">
+-0.309
+</td>
+<td style="text-align:center;">
+0.67
+</td>
+<td style="text-align:right;">
+8.1%
+</td>
+<td style="text-align:right;">
+1.6%
+</td>
+<td style="text-align:right;">
++0.087%
+</td>
+<td style="text-align:right;">
++0.004%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+M3, market size x10
+</td>
+<td style="text-align:right;">
+139.30
+</td>
+<td style="text-align:right;">
+-0.309
+</td>
+<td style="text-align:center;">
+0.67
+</td>
+<td style="text-align:right;">
+8.1%
+</td>
+<td style="text-align:right;">
+1.6%
+</td>
+<td style="text-align:right;">
++0.044%
+</td>
+<td style="text-align:right;">
++0.002%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+M2, alpha recalibrated at rho*
+</td>
+<td style="text-align:right;">
+13.93
+</td>
+<td style="text-align:right;">
+-0.212
+</td>
+<td style="text-align:center;">
+0.35
+</td>
+<td style="text-align:right;">
+3.1%
+</td>
+<td style="text-align:right;">
+20.7%
+</td>
+<td style="text-align:right;">
++1.810%
+</td>
+<td style="text-align:right;">
++0.157%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+M3, alpha recalibrated at rho*
+</td>
+<td style="text-align:right;">
+13.93
+</td>
+<td style="text-align:right;">
+-0.111
+</td>
+<td style="text-align:center;">
+0.67
+</td>
+<td style="text-align:right;">
+8.1%
+</td>
+<td style="text-align:right;">
+36.3%
+</td>
+<td style="text-align:right;">
++0.944%
+</td>
+<td style="text-align:right;">
++0.057%
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+M3, MC from 2019Q4 only
+</td>
+<td style="text-align:right;">
+13.93
+</td>
+<td style="text-align:right;">
+-0.310
+</td>
+<td style="text-align:center;">
+0.67
+</td>
+<td style="text-align:right;">
+8.1%
+</td>
+<td style="text-align:right;">
+1.7%
+</td>
+<td style="text-align:right;">
++0.440%
+</td>
+<td style="text-align:right;">
++0.022%
+</td>
+</tr>
+</tbody>
+</table>
+<p><em>Notes:</em> Bold rows are the baseline specifications.
+<strong>Market size</strong> rows multiply <span class="math inline">\(\lambda\)</span> (and hence market size <span class="math inline">\(M_t\)</span>) by 2, 5, and 10; <span class="math inline">\(\alpha\)</span> is recalibrated to the <span class="math inline">\(-2.62\)</span> target at <span class="math inline">\(\rho=0\)</span> within each scenario. Fit and the
+negative-cost rate are essentially unchanged; absolute merger effects
+shrink mechanically as more diversion flows to the outside good, while
+the M1-to-M3 ratio of hello effects is stable. <strong>Alpha
+recalibrated at <span class="math inline">\(\rho^{*}\)</span></strong>
+rows hold the baseline profiled <span class="math inline">\(\rho^{*}\)</span> fixed and rescale <span class="math inline">\(\alpha\)</span> so the model’s own implied median
+elasticity equals <span class="math inline">\(-2.62\)</span>; the
+resulting small <span class="math inline">\(|\alpha|\)</span> inflates
+Bertrand markups and drives negative-cost rates far above the
+plain-logit level, indicating that ASIN-level demand must be more
+elastic than the aggregate benchmark to rationalize observed prices.
+<strong>MC from 2019Q4 only</strong> fixes marginal costs at the last
+pre-merger quarter instead of the pre-merger average.</p>
+</div>
+<div id="appendix-d-equivalence-of-plain-logit-and-brand-nested-markups" class="section level2 unnumbered">
+<h2 class="unnumbered">Appendix D: Equivalence of plain-logit and
+brand-nested markups</h2>
+<p><strong>Proposition.</strong> Consider nested-logit demand with
+nesting parameter <span class="math inline">\(\rho \in [0,1)\)</span>
+and Bertrand competition, and suppose the nest partition refines the
+ownership partition: every nest <span class="math inline">\(g\)</span>
+is wholly owned by a single firm. Then the multiproduct Bertrand markups
+solving the first-order conditions at given shares are identical to the
+plain-logit (<span class="math inline">\(\rho = 0\)</span>) markups: for
+every product <span class="math inline">\(j\)</span> of firm <span class="math inline">\(f\)</span>, <span class="math inline">\(p_j - mc_j
+= 1/(|\alpha|(1 - S_f))\)</span>, where <span class="math inline">\(S_f
+= \sum_{k \in f} s_k\)</span> is the firm’s inside share.</p>
+<p><strong>Proof.</strong> Write <span class="math inline">\(x_k = p_k -
+mc_k\)</span>. Firm <span class="math inline">\(f\)</span>’s first-order
+condition for product <span class="math inline">\(j\)</span> is <span class="math inline">\(s_j + \sum_{k \in f} x_k\, \partial s_k / \partial
+p_j = 0\)</span>. Under plain logit, substituting the share derivatives
+and dividing by <span class="math inline">\(\alpha s_j\)</span> gives
+<span class="math inline">\(x_j - \sum_{k \in f} s_k x_k =
+-1/\alpha\)</span>, whose solution is uniform within the firm: <span class="math inline">\(x_j = \mu_f\)</span> with <span class="math inline">\(\mu_f(1 - S_f) = -1/\alpha\)</span>. Under nested
+logit with <span class="math inline">\(j\)</span> in nest <span class="math inline">\(g \subseteq f\)</span>, the same substitution
+gives</p>
+<p><span class="math display">\[\frac{x_j}{1-\rho} - \frac{\rho}{1-\rho}
+\sum_{k \in g} s_{k|g}\, x_k - \sum_{k \in f} s_k x_k =
+-\frac{1}{\alpha}.\]</span></p>
+<p>Try the uniform candidate <span class="math inline">\(x_k =
+\mu_f\)</span> for all <span class="math inline">\(k \in f\)</span>.
+Because the entire nest <span class="math inline">\(g\)</span> belongs
+to firm <span class="math inline">\(f\)</span>, the within-nest shares
+sum to one, <span class="math inline">\(\sum_{k \in g} s_{k|g} =
+1\)</span>, so the first two terms collapse to <span class="math inline">\(\mu_f\left(\tfrac{1}{1-\rho} -
+\tfrac{\rho}{1-\rho}\right) = \mu_f\)</span>, and the condition reduces
+to <span class="math inline">\(\mu_f (1 - S_f) = -1/\alpha\)</span> —
+the plain-logit equation. Since the system <span class="math inline">\((\Omega \circ \Delta)\,\mathbf{x} =
+-\mathbf{s}\)</span> is invertible in our data, this uniform solution is
+the unique solution, and it does not depend on <span class="math inline">\(\rho\)</span>. <span class="math inline">\(\square\)</span></p>
+<p>The empirical counterpart is exact: across all 1,164 observations, M1
+and M2 marginal costs agree to machine precision. The equivalence breaks
+whenever a nest spans products of different owners — the CLIP clusters
+do, which is why M3 recovers different (and far more plausible)
+costs.</p>
 </div>
 </div>
 

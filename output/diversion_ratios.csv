@@ -1,0 +1,4 @@
+model,to_colgate,to_cluster,to_other,to_outside
+M1: Logit,1.16,1.49,3.88,93.47
+M2: Brand-Nested,0.93,1.2,22.41,75.45
+M3: CLIP-Nested,0.41,58.14,8.39,33.06
