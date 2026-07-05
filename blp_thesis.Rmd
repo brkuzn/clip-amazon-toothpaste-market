@@ -701,9 +701,9 @@ kbl(tab_be,
   ) |>
   footnote(general = paste0(
     "Median own-price elasticity across all ASIN x quarter observations of each brand group, ",
-    "full estimation panel (1,164 observations). ",
-    "Elasticity formula: e_jj = alpha p_j [1/(1-rho) - rho s_j|g/(1-rho) - s_j], ",
-    "with alpha = -0.310 (calibrated) and rho* = 0 (M1), 0.35 (M2), 0.67 (M3). ",
+    "full estimation panel (1,164 observations). Elasticities use the nested-logit formula ",
+    "of Section 4.4 with the calibrated alpha (-0.310) and each model's profiled rho ",
+    "(0 for M1, 0.35 for M2, 0.67 for M3). ",
     "Rows sorted by M3 elasticity; bold = merger parties."
   ), escape = TRUE, threeparttable = TRUE, general_title = "Notes: ")
 ```
@@ -721,7 +721,7 @@ kbl(div_dt,
                   "To other inside goods", "To outside good"),
     format    = tbl_fmt,
     booktabs  = TRUE,
-    caption   = "Diversion from hello by Destination (%)",
+    caption   = "Diversion from hello by Destination (percent of lost demand)",
     align     = c("l", "r", "r", "r", "r")) |>
   row_spec(3, bold = TRUE, background = "#D6EAD6") |>
   kable_styling(
