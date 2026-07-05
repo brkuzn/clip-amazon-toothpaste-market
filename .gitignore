@@ -27,3 +27,4 @@ blp_cache/
 
 # LaTeX build logs
 *.log
+blp_thesis_h_cache/

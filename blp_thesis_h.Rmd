@@ -1,0 +1,1201 @@
+---
+title: "Demand Estimation with Unstructured Product Data"
+subtitle: "Evidence from Amazon's Toothpaste Market"
+author: "Burak Uzun"
+date: "`r format(Sys.Date(), '%B %Y')`"
+abstract: |
+  Merger simulation hinges on correctly measuring substitution patterns, yet the nesting structures used in practice are typically built from coarse labels such as brand identity. This paper asks whether product representations extracted from unstructured listing content -- images and text encoded with CLIP (Radford et al. 2021) -- define substitution patterns better than brand labels do. Using an ASIN-by-quarter panel of the Amazon US toothpaste market around Colgate-Palmolive's 2020 acquisition of the natural-brand hello, we estimate three nested-logit demand models via the Berry (1994) linearisation that differ only in how nests are assigned: no nesting, brand nesting, and nesting by k-means clusters of CLIP image-and-text embeddings. CLIP-based nesting fits demand best and cuts the share of economically implausible negative implied marginal costs from 8.6% to 1.7%. Because CLIP places hello and Colgate in different clusters, the implied diversion between the merging parties is small: the simulated merger price effect for hello falls from +1.23% under plain logit to +0.40% under CLIP nesting. The results suggest embedding-based nests are a practical, replicable tool for antitrust analysis when conventional product characteristics are unavailable.
+
+  **Keywords:** demand estimation; unstructured data; CLIP embeddings; nested logit; merger simulation; antitrust.
+
+  **JEL codes:** C55, D12, L13, L41, L81.
+output:
+  html_document:
+    number_sections: true
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    fig_caption: true
+    df_print: kable
+  pdf_document:
+    latex_engine: pdflatex
+    number_sections: true
+    toc: false
+    fig_caption: true
+    keep_tex: false
+    extra_dependencies: ["booktabs", "longtable", "array", "multirow", "threeparttable", "caption"]
+geometry: "margin=1in"
+fontsize: 11pt
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{float}
+  - \floatplacement{figure}{H}
+  - \usepackage{placeins}
+  - \usepackage{threeparttable}
+  - \usepackage{caption}
+  - \captionsetup[table]{skip=6pt}
+  - \renewcommand{\arraystretch}{1.15}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  fig.pos = "H"
+)
+
+# ── AUTO-DETECT PATHS ─────────────────────────────────────────────────────────
+# No manual configuration needed.
+# Works on Windows, Mac, and Linux regardless of repo folder name
+# (e.g. clip-amazon-toothpaste-market/ or clip-amazon-toothpaste-market-main/).
+# The Rmd must live in the repo root directory.
+.rmd_path <- tryCatch(
+  normalizePath(knitr::current_input(dir = TRUE), winslash = "/"),
+  error = function(e) tryCatch(
+    normalizePath(rstudioapi::getSourceEditorContext()$path, winslash = "/"),
+    error = function(e) normalizePath(getwd(), winslash = "/")
+  )
+)
+repo_dir   <- dirname(.rmd_path)
+script_dir <- file.path(repo_dir, "scripts")
+data_dir   <- file.path(repo_dir, "data")
+out_dir    <- file.path(repo_dir, "output")
+dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+# ─────────────────────────────────────────────────────────────────────────────
+
+knitr::opts_knit$set(root.dir = repo_dir)
+
+# Detect output format (html or latex)
+is_pdf  <- knitr::is_latex_output()
+tbl_fmt <- if (is_pdf) "latex" else "html"
+
+library(data.table)
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+library(ggrepel)
+library(patchwork)
+library(lubridate)
+library(cluster)   # needed by clip_k_sensitivity.R
+
+setwd(repo_dir)
+```
+
+```{r computation, include=FALSE, cache=TRUE, cache.extra=tools::md5sum(file.path(script_dir, c("blp_three_models.R","tables_and_figures.R","clip_k_sensitivity.R","robustness_checks.R")))}
+# ── Run all three computation scripts ────────────────────────────────────────
+# Each script is self-contained: reads raw data, runs estimation/simulation,
+# and writes output CSVs to output/.  cache=TRUE means this block only
+# re-executes when the scripts themselves change (tracked via cache.extra MD5).
+#
+# Expected runtimes (approximate):
+#   blp_three_models.R    :  5–10 min  (BLP estimation + Nash simulation × 3 models)
+#   tables_and_figures.R  :  < 1 min   (summary stats + Table 1)
+#   clip_k_sensitivity.R  : 15–20 min  (K = 2..10 × full BLP pipeline each)
+#
+# To force a full re-run, delete the blp_thesis_cache/ folder.
+
+source(file.path(script_dir, "blp_three_models.R"))
+source(file.path(script_dir, "tables_and_figures.R"))
+source(file.path(script_dir, "clip_k_sensitivity.R"))
+source(file.path(script_dir, "robustness_checks.R"))
+```
+
+```{r load_results, include=FALSE}
+# ── Load outputs written by the computation scripts ───────────────────────────
+tab1_raw  <- fread(file.path(out_dir, "table1_cluster_summary.csv"))
+coef1     <- fread(file.path(out_dir, "model1_coefficients.csv"))
+coef2     <- fread(file.path(out_dir, "model2_coefficients.csv"))
+coef3     <- fread(file.path(out_dir, "model3_coefficients.csv"))
+merger    <- fread(file.path(out_dir, "three_models_merger_summary.csv"))
+rmse_dt   <- fread(file.path(out_dir, "three_models_rmse.csv"))
+ksens_dt  <- fread(file.path(out_dir, "clip_k_sensitivity.csv"))
+asin1     <- fread(file.path(out_dir, "model1_asin_results.csv"))
+asin2     <- fread(file.path(out_dir, "model2_asin_results.csv"))
+asin3     <- fread(file.path(out_dir, "model3_asin_results.csv"))
+
+# Scalar parameters (must match blp_three_models.R)
+EPS_TARGET <- -2.62
+ALPHA      <- -0.31005
+RHO_M2     <- 0.35
+RHO_M3     <- 0.67
+```
+
+---
+
+# Introduction
+
+Antitrust authorities increasingly confront mergers in digital markets -- characteristically, an established incumbent acquiring a fast-growing, digitally native brand -- in which product differentiation is not described by standardised attributes. In a car merger the analyst observes horsepower and fuel economy; in a laptop merger, RAM and screen size. In an online consumer-goods merger, the economically relevant differentiation -- a "natural" positioning, sensitivity relief, visual branding, a kid-friendly format -- lives in unstructured listing content: product images, titles, and free-form benefit descriptions. The workhorse tools of merger simulation, however, were built for the structured world. Nested-logit models encode substitution through nest assignments constructed from coarse observable labels, most commonly brand identity or hand-picked segments, and when those labels misrepresent how consumers perceive products, the resulting diversion ratios, markups, and simulated price effects inherit the error.
+
+A second, equally practical obstacle compounds the first. Estimating price sensitivity credibly requires exogenous cost-side variation, and high-frequency online retail data rarely contain any: input-cost series vary only over time and are absorbed by time fixed effects, while Hausman-style rival-price instruments fail when demand shocks are correlated across markets, as they plainly are on a single national platform. The symptom of proceeding without valid instruments is well known to practitioners: demand estimated far too inelastic, implying Bertrand markups so large that the marginal costs recovered from the first-order conditions turn *negative* for a substantial share of products. The negative-cost rate directly measures how badly a demand system describes competition, and it is the diagnostic this paper puts at its centre.
+
+This paper offers a pragmatic pipeline for exactly that environment, with one methodological contribution at its core. The pipeline maps unstructured product listings into a continuous differentiation space using a pre-trained deep learning model -- CLIP image and text embeddings (Radford et al. 2021), reduced to five joint principal components -- and sidesteps the missing-instrument problem by calibrating the price coefficient to an established industry elasticity, the meta-analytic mean own-price elasticity of $-2.62$ for consumer packaged goods (Bijmolt, van Heerde, and Pieters 2005). The contribution lies in what the embeddings are used *for*: nests are assigned by k-means clustering in the embedding space rather than by brand. Holding everything else fixed, we compare three Berry (1994) nested-logit models that differ only in their nest assignment -- no nesting, brand nesting, and CLIP-cluster nesting -- and let the negative-cost diagnostic adjudicate between them.
+
+The empirical laboratory is Colgate-Palmolive's acquisition of hello Products LLC, a fast-growing premium "naturally friendly" oral-care brand. The deal was announced on 23 January 2020 and completed on 31 January 2020 for \$351 million in cash, giving a clean event date (2020Q1) inside the sample. Using an ASIN-by-quarter panel of the Amazon US toothpaste market (2018Q1--2022Q3, 159 products), we estimate three demand models via the Berry (1994) nested-logit linearisation that are identical in every respect except the nest assignment: M1 imposes no nesting (plain logit), M2 nests by brand, and M3 nests by K=5 CLIP clusters. With the price coefficient fixed by calibration, the remaining parameters are estimated by concentrated OLS with quarter fixed effects and the nesting parameter $\rho$ is profiled by grid search. Marginal costs are recovered from the Bertrand first-order conditions, and the merger is simulated by recomputing Nash equilibrium prices under pre- and post-merger ownership at fixed pre-merger costs.
+
+Three results stand out. First, CLIP-based nesting fits demand best: the profiled nesting parameter is $\rho^{*}=0.67$ and the residual sum of squares falls by 8.1% relative to plain logit, against 3.1% for brand nesting. Second, and most important, CLIP nesting drives the share of observations with *negative implied marginal costs* from 8.6% under both plain logit and brand nesting down to 1.7%. Negative recovered costs are the classic symptom of a demand system that understates substitutability and so overstates markups; their near-elimination is direct evidence that embedding-based nests capture the competitive structure that brand labels miss. Third, the economics of the merger change materially: CLIP places hello and Colgate in different clusters, implying low diversion between the merging parties, and the simulated price effect for hello falls from +1.23% (plain logit) to +0.40% (CLIP nesting), with Colgate's own effect essentially zero.
+
+Beyond the specific merger, the exercise is built as a transparent, reproducible template for antitrust practitioners. Every step, from embedding construction through the $\rho$ grid search to the Nash counterfactuals, runs from a single document, and the Nash solver is validated against PyBLP's counterfactual routines (Conlon and Gortmaker 2020) to numerical precision. The remainder of the paper proceeds as follows. Section 2 relates the approach to the literature. Section 3 describes the industry setting, the data, and the embedding construction. Section 4 lays out the empirical framework. Section 5 presents the results, and Section 6 discusses limitations. Section 7 concludes.
+
+---
+
+# Related Literature
+
+The demand framework descends from the discrete-choice literature on differentiated products. Berry (1994) shows that logit and nested-logit demand can be estimated by linear methods after inverting market shares, and that the same first-order conditions used to rationalise observed prices can be inverted to recover marginal costs under Bertrand competition. Nevo (2000) provides the canonical practitioner's treatment of this class of models, and Nevo (2001) demonstrates the full structural program -- demand estimates, recovered margins, and competitive counterfactuals -- in the ready-to-eat cereal industry, a consumer packaged goods setting closely analogous to toothpaste. Conlon and Gortmaker (2020) codify current best practice and provide the PyBLP routines against which this paper's equilibrium computations are validated. Draganska and Jain (2006) estimate structural demand for differentiated CPG product lines and report own-price elasticities of the magnitude used for calibration here.
+
+Within this tradition, the paper's price coefficient is calibrated rather than instrumented. The target elasticity of $-2.62$ comes from Bijmolt, van Heerde, and Pieters (2005), who meta-analyse 1,851 own-price elasticity estimates from 81 studies and report $-2.62$ as the mean. Calibration to an external elasticity is standard in applied antitrust simulation when credible cost-side instruments are unavailable, and it has a transparency advantage in a practitioner context: the price-sensitivity assumption is stated in one number rather than buried in a first stage.
+
+The use of unstructured data is most closely related to Compiani, Morozov, and Seiler (2026), who extract embeddings from product images and text with pre-trained deep learning models and incorporate them into a mixed logit model, showing across 40 Amazon categories that unstructured data identify close substitutes that attribute-based models miss. This paper shares their premise -- embeddings encode the differentiation consumers care about -- but differs in implementation and aim. Where Compiani, Morozov, and Seiler (2026) enter embeddings as continuous random-coefficient characteristics in a mixed logit, we use them to *define the nesting structure* of a Berry (1994) nested logit. The cost of this simplification is a coarser substitution pattern; the benefit is that the entire pipeline remains linear, transparent, and estimable in seconds, which matters for the merger-review setting where speed and auditability are first-order concerns. The embedding technology itself, CLIP, is due to Radford et al. (2021); its contrastive image-text training makes image and text representations directly comparable, which is what allows a single joint product space to be built from both modalities.
+
+The contribution, then, sits at the intersection: a minimal, replicable bridge between modern representation learning and the nested-logit merger simulation toolkit that antitrust practitioners already use.
+
+---
+
+# Industry Background and Data
+
+## The hello--Colgate Acquisition
+
+hello Products LLC, founded in 2012, positioned itself as a "naturally friendly" oral-care brand -- fluoride-optional formulas, charcoal and coconut-oil lines, playful branding -- with strong appeal among younger consumers. Colgate-Palmolive announced its agreement to acquire hello on 23 January 2020 and completed the transaction on 31 January 2020 for \$351 million in cash. The acquisition is an attractive empirical laboratory for three reasons: the event date falls cleanly at the start of 2020Q1; the acquirer is the category's largest incumbent while the target occupies a differentiated "natural" niche, so the price effect hinges on exactly the substitution question this paper studies; and both parties sell extensively on Amazon, where listing content is observable.
+
+## Data Sources
+
+The analysis combines two data sources. Household-level purchase histories come from the Open E-commerce 1.0 dataset (Berke et al. 2024), a crowdsourced panel of 5,027 US Amazon consumers with more than 1.8 million transaction records, distributed through Harvard Dataverse. The dataset has been validated by its authors against public Amazon sales data: aggregate expenditure in the panel correlates with published Amazon revenues at Pearson $r = 0.978$ ($p < 0.001$; Berke et al. 2024). The toothpaste purchase records extracted for this study span January 2018 to March 2023 and include order timestamps, prices, and household identifiers; household demographics are available in the source data but enter the analysis only through the count of unique purchasing households per cell. Product-level metadata -- titles, benefit descriptions, and image URLs for every purchased ASIN -- were retrieved programmatically through the Keepa API (a subscription-based Amazon data service) and parsed with a rule-based extraction script (brand matching against a curated brand list, keyword-based benefit extraction, and unit-aware package-size parsing). Prices are deflated to real terms using the CPI before aggregation; the panel's quarterly price for each ASIN is the mean deflated transaction price across that quarter's purchases.
+
+## Sample Construction
+
+The estimation sample is built in three steps, each dictated by a practical constraint:
+
+1. **Choice-set restriction (167 ASINs).** The universe of toothpaste ASINs is restricted to products with at least five recorded purchases over the sample window. An unrestricted choice set with thousands of rarely purchased alternatives proved computationally infeasible and produced singular design matrices; the five-purchase floor keeps every product with meaningful revealed-preference information while discarding noise listings.
+
+2. **Brand grouping (12 groups).** Brands accounting for more than 2% of purchases are treated as their own groups -- Colgate, Crest, SENSODYNE PRONAMEL, Sensodyne, Tom's of Maine, Arm \& Hammer, hello, Parodontax, APAGARD, JASON, and Orajel -- and all remaining small brands are collapsed into an "Other" category. Together the eleven named groups account for 87% of purchases.
+
+3. **Panel filters (159 ASINs, 1,164 observations).** Purchases are aggregated to ASIN x quarter cells. The estimation window ends in 2022Q3 (later quarters are incompletely covered), and ASINs must appear in at least three quarters to enter the sample, eliminating products whose near-zero shares would be dominated by sampling noise. The resulting panel covers 2018Q1--2022Q3: 19 quarters, 159 ASINs, and 1,164 observations.
+
+Market shares are constructed from revealed-preference purchase counts. Market size $M_t$ is set to $(1 + \lambda) \cdot \sum_j q_{jt}$ with $\lambda = 13.93$, implying an outside-good share of approximately 93%.
+
+Separately from these sample filters, the joint embedding space of Section 3.4 is *fitted* on the 155 of 167 ASINs that hold both a valid image and a valid text embedding; the 12 ASINs with text-only embeddings are projected into that space and remain in the estimation sample throughout. Table 1 reports summary statistics for the estimation panel.
+
+```{r tab_panel_summary}
+pp <- fread(file.path(data_dir, "asin_quarter_panel.csv"))
+pp[, qd := as.Date(paste0(sub("Q.*", "", quarter), "-",
+       sprintf("%02d", (as.integer(sub(".*Q", "", quarter)) - 1) * 3 + 1), "-01"))]
+pp <- pp[qd <= as.Date("2022-07-01")][, qd := NULL]
+keep_a <- pp[, .(n = uniqueN(quarter)), by = asin][n >= 3, asin]
+pp <- pp[asin %in% keep_a]
+chars_p <- fread(file.path(data_dir, "asin_characteristics.csv"))
+pp <- merge(pp, chars_p[, .(asin, pkg_size)], by = "asin", all.x = TRUE)
+mt <- pp[, .(tq = sum(q_jt)), by = quarter]
+mt[, M_t := (1 + 13.93) * tq]          # lambda = 13.93, as in Section 3.5
+pp <- merge(pp, mt[, .(quarter, M_t)], by = "quarter")
+pp[, share1000 := q_jt / M_t * 1000]
+
+sumrow <- function(x, fmt) sprintf(fmt, c(mean(x, na.rm = TRUE), median(x, na.rm = TRUE),
+                                          sd(x, na.rm = TRUE), min(x, na.rm = TRUE),
+                                          max(x, na.rm = TRUE)))
+tabP <- data.table(
+  Variable = c("Price (USD)", "Quarterly units sold", "Market share (x1,000)",
+               "Package size (g)", "Purchasing households per cell"),
+  rbind(sumrow(pp$price_mean, "%.2f"),
+        sumrow(as.numeric(pp$q_jt), "%.2f"),
+        sumrow(pp$share1000, "%.3f"),
+        sumrow(as.numeric(pp$pkg_size), "%.0f"),
+        sumrow(as.numeric(pp$n_hh), "%.2f"))
+)
+setnames(tabP, c("Variable", "Mean", "Median", "SD", "Min", "Max"))
+
+kbl(tabP,
+    format   = tbl_fmt,
+    booktabs = TRUE,
+    caption  = "Panel Summary Statistics (Estimation Sample)",
+    align    = c("l", "r", "r", "r", "r", "r")) |>
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    latex_options     = c("HOLD_position"),
+    font_size         = if (is_pdf) 9 else 13,
+    full_width        = FALSE
+  ) |>
+  footnote(general = paste0(
+    "1,164 ASIN x quarter observations; 159 ASINs; 19 quarters (2018Q1--2022Q3); ",
+    "12 brand groups. Price is the quarterly mean deflated transaction price per ASIN. ",
+    "Market share uses market size M_t = (1 + 13.93) x total quarterly purchases ",
+    "(outside-good share approx. 93%)."
+  ), escape = TRUE, threeparttable = TRUE, general_title = "Notes: ")
+```
+
+## From Listings to Nests: Embeddings, Joint PCA, and Clustering
+
+Each product $j$ is represented by its listing image and the concatenation of its title and benefit description. CLIP (Contrastive Language-Image Pre-training; Radford et al. 2021) provides an image encoder $f_I$ and a text encoder $f_T$, trained contrastively so that matching image--text pairs lie close together in a shared representation space. Both encoders (`clip-vit-base-patch32`) map into $\mathbb{R}^{512}$, and outputs are L2-normalised:
+
+$$\mathbf{e}^{I}_{j} = \frac{f_I(\text{image}_j)}{\lVert f_I(\text{image}_j) \rVert}, \qquad
+\mathbf{e}^{T}_{j} = \frac{f_T(\text{text}_j)}{\lVert f_T(\text{text}_j) \rVert}.$$
+
+Each modality's embeddings are first reduced to five modality-specific principal components (Hotelling 1933), with each PCA fitted only on the products holding a valid embedding for that modality. This yields a ten-dimensional characteristics vector per product, $\mathbf{x}_j = (x^{I}_{j1},\dots,x^{I}_{j5},\,x^{T}_{j1},\dots,x^{T}_{j5})$.
+
+Because these ten columns come from two separate PCA fits, their scales are not comparable: within each modality the first component mechanically carries the largest variance, and the image and text blocks have different overall variance levels. The joint PCA is therefore computed on the correlation scale. Each column $k$ is z-scored using its mean $\mu_k$ and standard deviation $\sigma_k$ over the $N = 155$ products with both modalities,
+
+$$z_{jk} = \frac{x_{jk} - \mu_k}{\sigma_k},$$
+
+and the rotation matrix $\mathbf{W}$ is obtained from the PCA of the standardised matrix $\mathbf{Z}$. The first five joint components, $\mathbf{pc}_j = \mathbf{z}_j' \mathbf{W}_{[\cdot,1:5]}$, define the differentiation space used throughout the paper. Standardisation is not cosmetic: without it, the joint solution would be dominated by whichever input columns happen to carry the largest raw variance -- the two first-stage PC1s -- rather than by genuine cross-modality structure. The fitted parameters $(\mu_k, \sigma_k, \mathbf{W})$ are saved with the replication materials, which makes the projection of any product into the joint space exactly reproducible.
+
+A useful diagnostic for whether the joint space actually blends the two modalities is the modality share of each component: the fraction of its squared rotation loadings attributable to image inputs,
+
+$$\text{share}^{I}_{m} = \frac{\sum_{k \in I} w_{km}^2}{\sum_{k} w_{km}^2}, \qquad m = 1, \dots, 5.$$
+
+As Figure 1 shows, every retained joint component draws between 48.6% and 51.4% of its loading mass from each modality -- the joint space is genuinely multimodal rather than a relabelled image space or text space.
+
+Finally, nests are formed by k-means clustering (Lloyd 1982) on the five joint components: each product is assigned to one of $K = 5$ clusters,
+
+$$g_j = \arg\min_{g \in \{1,\dots,K\}} \lVert \mathbf{pc}_j - \mathbf{c}_g \rVert^2,$$
+
+with centroids $\mathbf{c}_g$ from 50 random restarts (seed 42), and cluster membership is the nest assignment in M3. The five clusters explain 71.2% of joint-PC variance. Appendix A reports cluster-quality diagnostics -- within-cluster sum of squares and average silhouette width (Rousseeuw 1987) -- together with all downstream results for $K = 2, \dots, 10$.
+
+```{r fig_pca, fig.cap="Anatomy of the joint embedding space. Left: variance explained by each joint principal component of the standardised ten-column input (five image PCs and five text PCs), fitted on the 155 ASINs with both modalities; the first five components (blue) are retained. Right: modality composition of each retained component, measured as the share of squared rotation loadings attributable to image versus text inputs. The dashed line marks an even 50/50 split; every component lies within 1.4 percentage points of it, confirming the joint space blends both modalities rather than being dominated by either.", fig.width=7, fig.height=3.4}
+feat10 <- fread(file.path(repo_dir, "scripts/CLIP-Embeddings/asin_features_for_blp_clip.csv"))
+img_cols10  <- paste0("asin_img_pc", 1:5)
+text_cols10 <- paste0("asin_text_pc", 1:5)
+in_cols10   <- c(img_cols10, text_cols10)
+
+X10   <- as.matrix(feat10[has_img == 1 & has_text == 1, ..in_cols10])
+Z10   <- scale(X10)                       # z-score each column: (x - mu_k) / sigma_k
+pca10 <- prcomp(Z10, center = FALSE, scale. = FALSE)
+ve10  <- 100 * pca10$sdev^2 / sum(pca10$sdev^2)
+
+scree_dt <- data.table(
+  pc       = factor(1:10),
+  ve       = ve10,
+  retained = factor(c(rep("Retained (PC1-PC5)", 5), rep("Dropped", 5)),
+                    levels = c("Retained (PC1-PC5)", "Dropped"))
+)
+
+W2 <- pca10$rotation[, 1:5]^2
+img_share10 <- 100 * colSums(W2[rownames(W2) %in% img_cols10, ]) / colSums(W2)
+share_dt <- data.table(
+  pc       = factor(rep(paste0("PC", 1:5), 2), levels = paste0("PC", 1:5)),
+  modality = rep(c("Image", "Text"), each = 5),
+  share    = c(img_share10, 100 - img_share10)
+)
+
+p_scree <- ggplot(scree_dt, aes(pc, ve, fill = retained)) +
+  geom_col(width = 0.7) +
+  scale_fill_manual(values = c("Retained (PC1-PC5)" = "#2563eb", "Dropped" = "grey75"),
+                    name = NULL) +
+  labs(x = "Joint principal component", y = "Variance explained (%)") +
+  theme_minimal(base_size = 9) +
+  theme(legend.position = "bottom", panel.grid.minor = element_blank())
+
+p_share <- ggplot(share_dt, aes(pc, share, fill = modality)) +
+  geom_col(width = 0.6) +
+  geom_hline(yintercept = 50, linetype = "dashed", colour = "grey30", linewidth = 0.4) +
+  scale_fill_manual(values = c("Image" = "#2563eb", "Text" = "#f28e2b"), name = NULL) +
+  labs(x = "Retained joint component", y = "Share of squared loadings (%)") +
+  theme_minimal(base_size = 9) +
+  theme(legend.position = "bottom", panel.grid.minor = element_blank())
+
+p_scree + p_share
+```
+
+Embeddings are static over the sample window. Established Amazon listings change their images and titles only marginally over 2018–2022, so re-extracting embeddings per quarter would produce near-identical vectors; the identifying variation is **cross-sectional** — ASINs within the same brand differ genuinely in packaging and benefit claims — and this is exactly the variation recovered by moving from brand-level to ASIN-level data. Time-varying demand conditions are absorbed by quarter fixed effects.
+
+Twelve ASINs lack an image embedding (image retrieval failed at extraction time) but have valid text embeddings. Rather than dropping them or imputing brand means, they are projected into the joint PC space from their standardised text components, with image dimensions set to the cross-sectional mean -- zero in standardised space, so that $\mathbf{pc}_j = (\mathbf{0},\, \mathbf{z}^{T}_j)'\,\mathbf{W}_{[\cdot,1:5]}$ using the same saved $(\mu_k, \sigma_k, \mathbf{W})$. These ASINs span Crest (4), Sensodyne (2), Tom's of Maine (2), hello (2), and Other (2), and all clear the three-quarter inclusion filter. Dropping them would distort brand-level market shares and remove hello observations inside the merger simulation window; brand-mean imputation was rejected because it would reintroduce precisely the aggregation that the ASIN-level design is meant to avoid.
+
+## The Estimated Product Space
+
+Table 2 reports summary statistics by CLIP cluster. The clusters recover economically meaningful segments without using any sales or price information: a premium sensitivity segment (C1, dominated by the GSK brands), the two mainstream incumbents in their own clusters (C2 Colgate, C3 Crest), Tom's of Maine (C4), and a natural/specialty segment (C5) containing hello. Price levels and package sizes differ sharply across clusters, so the clusters capture both vertical and horizontal differentiation.
+
+```{r table1}
+if (is_pdf) {
+  col_names_t1 <- c("Cluster","Dom. Brand","$N$ ASINs",
+                    "$\\bar{p}$","$\\tilde{p}$","$\\sigma_p$",
+                    "$\\bar{s}\\times10^3$","$\\tilde{s}\\times10^3$","$\\sigma_s\\times10^3$",
+                    "$\\bar{w}$","$\\tilde{w}$","$\\sigma_w$")
+  hdr_above  <- c(" "=3, "Price (USD)"=3, "Mkt. Share (x1000)"=3, "Pkg. Size (g)"=3)
+  t1_footnote <- "Panel: 1,164 ASIN x quarter observations, 19 quarters (2018Q1--2022Q3). Mean/Median/SD of price in USD, market share scaled x1000, package weight in grams. Dominant brand = modal brand by ASIN count within cluster."
+} else {
+  col_names_t1 <- c("Cluster","Dom. Brand","N ASINs",
+                    "Mean","Median","SD","Mean","Median","SD","Mean","Median","SD")
+  hdr_above  <- c(" "=3, "Price ($)"=3, "Mkt. Share (x1000)"=3, "Pkg. Size (g)"=3)
+  t1_footnote <- "Panel: 1,164 ASIN x quarter observations, 19 quarters (2018Q1-2022Q3). Mean/Median/SD of price in USD, market share scaled x1000, package weight in grams. Dominant brand = modal brand by ASIN count within cluster."
+}
+
+t1 <- tab1_raw[, .(
+  Cluster   = paste0("C", clip_nest),
+  DomBrand  = ifelse(dom_brand == "Other", "Other (hello)", dom_brand),
+  N_asins   = n_asins,
+  PriceMean = sprintf("%.2f", price_mean),
+  PriceMed  = sprintf("%.2f", price_median),
+  PriceSD   = sprintf("%.2f", price_sd),
+  ShareMean = sprintf("%.3f", share_mean),
+  ShareMed  = sprintf("%.3f", share_median),
+  ShareSD   = sprintf("%.3f", share_sd),
+  PkgMean   = sprintf("%.0f", pkg_mean),
+  PkgMed    = sprintf("%.0f", pkg_median),
+  PkgSD     = sprintf("%.0f", pkg_sd)
+)]
+
+kbl(t1,
+    col.names = col_names_t1,
+    format    = tbl_fmt,
+    booktabs  = TRUE,
+    escape    = FALSE,
+    caption   = "Summary Statistics by CLIP Cluster",
+    align     = c("l","l","r","r","r","r","r","r","r","r","r","r")) |>
+  add_header_above(hdr_above, escape = FALSE) |>
+  kable_styling(
+    bootstrap_options = c("striped","hover","condensed","responsive"),
+    latex_options     = c("hold_position", "scale_down"),
+    font_size         = if (is_pdf) 8 else 13,
+    full_width        = FALSE
+  ) |>
+  footnote(general = t1_footnote, escape = TRUE, threeparttable = TRUE, general_title = "Notes: ")
+```
+
+\vspace{1em}
+
+Beyond price and share statistics, the clusters are directly interpretable from the listing content itself. Table 3 reports, for each cluster, the listing-vocabulary terms that are most over-represented relative to the whole category (by lift: the share of the cluster's ASINs whose title or benefit text contains the term, divided by the category-wide share). The vocabulary confirms that the clusters track product positioning, not arbitrary embedding geometry.
+
+```{r tab_vocab}
+titles_v <- fread(file.path(repo_dir, "scripts/CLIP-Embeddings/asin_titles.csv"))
+pcs_v    <- fread(file.path(data_dir, "asin_joint_pcs_complete.csv"))
+pcs_v    <- pcs_v[asin %in% unique(pp$asin)]
+set.seed(42)
+km_v <- kmeans(as.matrix(pcs_v[, paste0("joint_pc", 1:5), with = FALSE]),
+               centers = 5, nstart = 50, iter.max = 500)
+pcs_v[, cl := km_v$cluster]
+tv <- merge(pcs_v[, .(asin, cl)], titles_v, by = "asin")
+tv[, text := tolower(paste(title, product_benefit))]
+
+stop_v <- c("the","and","for","with","of","a","in","to","by","on","or","from",
+            "oz","ounce","ounces","fl","ml","gram","grams","pack","count",
+            "toothpaste","tooth","paste","teeth","tube","tubes","new","per")
+tok <- tv[, .(word = unique(unlist(strsplit(gsub("[^a-z']+", " ", text), " +")))),
+          by = .(cl, asin)]
+tok <- tok[nchar(word) >= 3 & !word %in% stop_v]
+
+n_all   <- tok[, uniqueN(asin)]
+df_all  <- tok[, .(d_all = uniqueN(asin)), by = word]
+df_cl   <- tok[, .(d = uniqueN(asin)), by = .(cl, word)]
+n_cl    <- tv[, .(n = uniqueN(asin)), by = cl]
+lift_dt <- merge(merge(df_cl, n_cl, by = "cl"), df_all, by = "word")
+lift_dt[, lift := (d / n) / (d_all / n_all)]
+top_v <- lift_dt[d >= 2 & lift > 1.5][order(cl, -lift, -d)][, head(.SD, 6), by = cl]
+vocab_tab <- top_v[, .(terms = paste(word, collapse = ", ")), by = cl][order(cl)]
+vocab_tab <- merge(vocab_tab,
+                   tab1_raw[, .(cl = clip_nest, dom_brand, n_asins)], by = "cl")
+vocab_tab <- vocab_tab[, .(Cluster = paste0("C", cl), dom_brand, n_asins, terms)]
+
+kbl(vocab_tab,
+    col.names = c("Cluster", "Dominant brand", "N ASINs",
+                  "Most over-represented listing terms (by lift)"),
+    format    = tbl_fmt,
+    booktabs  = TRUE,
+    caption   = "Distinctive Listing Vocabulary by CLIP Cluster",
+    align     = c("l", "l", "r", "l")) |>
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    latex_options     = c("HOLD_position"),
+    font_size         = if (is_pdf) 9 else 13,
+    full_width        = FALSE
+  ) |>
+  column_spec(4, width = if (is_pdf) "22em" else NULL) |>
+  footnote(general = paste0(
+    "Terms from ASIN titles and benefit descriptions (lower-cased, unit and category ",
+    "stopwords removed). Lift = share of the cluster's ASINs containing the term divided ",
+    "by the category-wide share; terms shown appear in at least two of the cluster's ASINs ",
+    "and have lift above 1.5, ranked by lift. Cluster assignment identical to the ",
+    "estimation (K = 5, seed 42)."
+  ), escape = TRUE, threeparttable = TRUE, general_title = "Notes: ")
+```
+
+\vspace{1em}
+
+Figure 2 visualises the CLIP product space: hello's listings sit in the natural/specialty cluster on the left of the embedding plane while Colgate's cluster occupies the opposite region, making the low implied diversion between the merging parties directly visible.
+
+```{r figure1, fig.cap="Product space from CLIP embeddings. Each point is one ASIN positioned by its first two principal components of the joint image+text embedding. Cluster centroids are labelled C1--C5. hello (red diamonds, C5) and Colgate (dark blue triangles, C2) occupy different clusters, implying a lower diversion ratio and a smaller predicted merger effect under CLIP nesting relative to plain logit.", fig.width=6.5, fig.height=4.8}
+
+# ── rebuild figure 1 inline ──────────────────────────────────────────────────
+LAMBDA        <- 13.93
+TIME_CUTOFF   <- as.Date("2022-07-01")
+MIN_QUARTERS  <- 3
+K_CLIP        <- 5
+PC_COLS       <- paste0("joint_pc", 1:5)
+
+panel <- fread(file.path(data_dir, "asin_quarter_panel.csv"))
+panel[, month_date_dummy := as.Date(paste0(
+  sub("Q.*","",quarter),"-",
+  sprintf("%02d",(as.integer(sub(".*Q","",quarter))-1)*3+1),"-01"))]
+panel <- panel[month_date_dummy <= TIME_CUTOFF][, month_date_dummy := NULL]
+
+asin_chars <- fread(file.path(data_dir, "asin_characteristics.csv"))
+panel <- merge(panel, asin_chars[, .(asin, pkg_size, is_import)], by="asin", all.x=TRUE)
+panel[is.na(pkg_size),  pkg_size  := median(panel$pkg_size,  na.rm=TRUE)]
+panel[is.na(is_import), is_import := 0]
+keep_asins <- panel[, .(n=uniqueN(quarter)), by=asin][n>=MIN_QUARTERS, asin]
+panel      <- panel[asin %in% keep_asins]
+
+pcs_raw <- fread(file.path(data_dir, "asin_joint_pcs_complete.csv"))
+pcs_raw <- pcs_raw[asin %in% panel$asin]
+set.seed(42)
+km5 <- kmeans(as.matrix(pcs_raw[, PC_COLS, with=FALSE]),
+              centers=K_CLIP, nstart=50, iter.max=500)
+pcs_raw[, clip_nest := km5$cluster]
+panel <- merge(panel, pcs_raw[, .(asin, clip_nest)], by="asin", all.x=TRUE)
+
+asin_level <- panel[, .(
+  pc1       = mean(joint_pc1, na.rm=TRUE),
+  pc2       = mean(joint_pc2, na.rm=TRUE),
+  clip_nest = clip_nest[1],
+  brand     = brand_grouped_50[1]
+), by=asin]
+asin_level[, highlight := fifelse(brand=="hello","hello",
+                           fifelse(brand=="Colgate","Colgate","Other"))]
+
+centroids <- asin_level[, .(pc1=mean(pc1), pc2=mean(pc2)), by=clip_nest]
+centroids[, label := paste0("C", clip_nest)]
+centroids[, pc2_label := pc2]
+centroids[label=="C3", pc2_label := pc2 + 0.55]
+centroids[label=="C2", pc2_label := pc2 + 0.30]
+
+annot <- asin_level[highlight!="Other", .(pc1=mean(pc1), pc2=mean(pc2), label=brand), by=brand]
+
+cluster_colours <- c("1"="#4e79a7","2"="#f28e2b","3"="#e15759",
+                     "4"="#76b7b2","5"="#59a14f")
+
+ggplot(asin_level, aes(x=pc1, y=pc2)) +
+  geom_point(data=asin_level[highlight=="Other"],
+             aes(colour=factor(clip_nest)), alpha=0.55, size=2, shape=16) +
+  geom_label(data=centroids,
+             aes(x=pc1, y=pc2_label, label=label),
+             inherit.aes=FALSE,
+             colour="grey20", fill="white", size=2.8, fontface="bold",
+             label.padding=unit(0.2,"lines"), label.size=0.25) +
+  geom_point(data=asin_level[highlight=="hello"],
+             colour="#c0392b", fill="#c0392b", size=4, shape=23, stroke=1.2) +
+  geom_point(data=asin_level[highlight=="Colgate"],
+             colour="#1a5276", fill="#1a5276", size=4, shape=24, stroke=1.2) +
+  geom_label_repel(data=annot,
+                   aes(x=pc1, y=pc2, label=label),
+                   inherit.aes=FALSE,
+                   colour="grey10", fill="white", size=2.8, fontface="bold",
+                   nudge_y=0.3, nudge_x=0.1,
+                   label.padding=unit(0.2,"lines"), label.size=0.3,
+                   min.segment.length=0.15, segment.colour="grey50") +
+  scale_colour_manual(values=cluster_colours, name="Cluster",
+                      labels=paste0("C", 1:5), breaks=as.character(1:5)) +
+  labs(x="PC 1", y="PC 2") +
+  theme_minimal(base_size=10) +
+  theme(panel.grid.minor=element_blank(),
+        panel.grid.major=element_line(colour="grey92"),
+        legend.position="right")
+```
+
+---
+
+# Empirical Framework
+
+## Berry (1994) Linearisation
+
+All three models are estimated via the Berry (1994) nested-logit linearisation:
+
+$$\log\frac{s_{jt}}{s_{0t}} - \rho\,\log s_{j|g,t} = \alpha\,p_{jt} + \boldsymbol{\beta}'\mathbf{x}_{jt} + \text{FE}_t + \xi_{jt}$$
+
+where $s_{j|g,t} = s_{jt}/\!\sum_{k\in g}s_{kt}$ is the within-nest share, $\rho\in[0,1)$ is the nesting intensity, and $\text{FE}_t$ are quarter fixed effects (absorbed by within-quarter demeaning).
+
+## Price Coefficient Calibration
+
+Valid cost-side instruments for price are unavailable in this high-frequency online retail dataset (see Section 5). Following the recommendation of Berry (1994) and standard practice in applied antitrust simulation, $\alpha$ is calibrated to match a target median own-price elasticity:
+
+$$\alpha = \frac{\varepsilon_{\text{target}}}{\operatorname{median}(p_{jt}(1-s_{jt}))} = \frac{-2.62}{8.4502} = -0.310$$
+
+The target $\varepsilon_{\text{target}} = -2.62$ corresponds to the brand-level CPG meta-analysis mean of Bijmolt, van Heerde \& Pieters (2005), consistent with structural BLP estimates for analogous packaged-goods categories (Nevo 2001; Draganska \& Jain 2006).
+
+**Sequential calibration note.** Since $\alpha$ is calibrated at $\rho=0$, the target elasticity $-2.62$ is the plain-logit median. At the profiled nesting parameters, the nested-logit elasticity formula amplifies own-price sensitivity by roughly $1/(1-\rho^{*})$, so the same $\alpha$ implies median own-price elasticities of $-3.83$ under M2 and $-7.31$ under M3 (computed observation by observation; the $1/(1-\rho^{*})$ back-of-envelope gives $-4.0$ and $-7.9$). These larger magnitudes are not in tension with the calibration target. The Bijmolt, van Heerde, and Pieters (2005) mean is dominated by brand- and aggregate-level estimates, whereas the products here are individual ASINs, which face much closer substitutes than a brand aggregate does -- finer product definitions mechanically imply more elastic demand. Structural estimates at the product-line level are correspondingly larger: Draganska and Jain (2006) report own-price elasticities between $-2.45$ and $-6.25$, a range that contains the calibration target and most of the nested models' implied values. Appendix C reports a robustness exercise that rescales $\alpha$ within each nested model so that the model's own implied median equals $-2.62$ at its profiled $\rho^{*}$: doing so shrinks $|\alpha|$, inflates Bertrand markups, and drives the negative-cost rate far above even the plain-logit level. In other words, ASIN-level demand must be substantially more elastic than the aggregate benchmark for observed prices to be rationalizable at all -- the cost side independently validates the more elastic implied elasticities.
+
+## $\rho^*$ Selection — Concentrated OLS Profile
+
+For each $\rho$ on a fine grid $\{0, 0.01, \ldots, 0.90\}$, the adjusted dependent variable is formed and $\boldsymbol{\beta}(\rho)$ is estimated by OLS. The profiled $\rho^*$ minimises the residual sum of squares:
+
+$$\tilde{y}_{jt}(\rho) = \log\frac{s_{jt}}{s_{0t}} - \alpha p_{jt} - \rho\log s_{j|g,t}, \qquad \rho^* = \arg\min_\rho \left\|\tilde{y}(\rho) - \mathbf{X}\hat{\boldsymbol{\beta}}(\rho)\right\|^2$$
+
+## Marginal Costs and Merger Simulation
+
+Marginal costs are recovered from the pre-merger Bertrand first-order condition (Berry 1994):
+
+$$\mathbf{mc} = \mathbf{p} + (\Omega_{\text{pre}} \circ \Delta)^{-1}\mathbf{s}$$
+
+where $\Omega[j,k] = \mathbf{1}[\text{firm}_j = \text{firm}_k]$ and $\Delta$ is the demand Jacobian with elements:
+
+$$\Delta_{jj} = \alpha s_j\!\left[\tfrac{1}{1-\rho} - \tfrac{\rho}{1-\rho}s_{j|g} - s_j\right], \quad \Delta_{jk}^{\text{same}} = \alpha s_j\!\left[-\tfrac{\rho}{1-\rho}s_{k|g} - s_k\right], \quad \Delta_{jk}^{\text{diff}} = -\alpha s_j s_k$$
+
+**Remark (brand nests and ownership).** Marginal-cost recovery interacts with the nest assignment in one important, exact way. When every nest lies wholly inside one firm -- as with brand nests, where each firm owns complete brands -- the nested-logit Bertrand first-order conditions admit the same solution as plain logit: markups are uniform within each firm at $1/(|\alpha|(1-S_f))$, where $S_f$ is the firm's inside share, for *any* value of $\rho$ (proof in Appendix D). Consequently, M1 and M2 recover *identical* marginal costs at every observation, identical Lerner indices, and identical negative-cost rates. Brand nesting is therefore incapable of repairing the cost side of the model in this market by construction; only a nest assignment that cuts across ownership boundaries -- such as the CLIP clusters, which group ASINs of different firms -- can change recovered costs. The counterfactual equilibria of M1 and M2 still differ slightly, because the share *functions* $s(p)$ differ even though markups at observed shares coincide.
+
+Marginal costs are averaged per ASIN across pre-merger quarters and held fixed in both counterfactuals. Holding costs at pre-merger values serves two purposes: it embodies the standard no-efficiencies assumption of prospective merger review, and it avoids a mechanical tautology -- if costs were re-inverted in post-merger quarters, the no-merger Nash equilibrium would recover observed prices by construction, since the first-order condition is the identity that defined those costs.
+
+Two Nash equilibria are then computed for every post-merger quarter via a damped fixed-point iteration on the Bertrand first-order conditions:
+
+$$\mathbf{p}_{n+1} = \lambda\left[\mathbf{mc} - (\Omega \circ \Delta(\mathbf{p}_n))^{-1}\mathbf{s}(\mathbf{p}_n)\right] + (1-\lambda)\,\mathbf{p}_n$$
+
+with $\lambda = 0.4$, convergence tolerance $10^{-8}$, and up to 2,000 iterations. The no-merger counterfactual uses pre-merger ownership $\Omega_{\text{pre}}$; the merger simulation replaces it with $\Omega_{\text{post}}$ (hello ASINs assigned to Colgate's firm identifier from 2020Q1). The merger price effect is the difference between the two equilibria, $\Delta p = p^{\text{merger}} - p^{\text{no-merger}}$, so that ownership structure is the only thing that varies between them.
+
+**Algorithm validation.** The R implementation mirrors the counterfactual equilibrium routines in PyBLP (Conlon \& Gortmaker 2020) and is validated against PyBLP's `compute_prices()` directly: for both M1 (plain logit) and M3 (CLIP-nested, $\rho^*=0.67$), the maximum absolute price difference across 847 post-merger observations is below $2 \times 10^{-8}$, confirming algorithmic equivalence.
+
+---
+
+# Results
+
+## Demand Estimates
+
+Table 4 presents the demand parameters for all three models, separating the calibrated $\alpha$ from the estimated $\boldsymbol{\beta}$ and the profiled $\rho^{*}$. Brand nesting yields $\rho^{*}=0.35$ with a 3.1% RSS improvement over plain logit; CLIP nesting yields $\rho^{*}=0.67$ with an 8.1% improvement. The stronger profiled nesting parameter indicates that within-cluster substitution is substantially more intense when clusters are defined in embedding space than when they are defined by brand identity.
+
+```{r table2}
+if (is_pdf) {
+  var_labels <- c(
+    "prices_alpha"         = "$\\alpha$ (price)",
+    "pkg_size"             = "Package size (g)",
+    "joint_pc1"            = "CLIP $PC_1$",
+    "joint_pc2"            = "CLIP $PC_2$",
+    "joint_pc3"            = "CLIP $PC_3$",
+    "joint_pc4"            = "CLIP $PC_4$",
+    "joint_pc5"            = "CLIP $PC_5$",
+    "is_other"             = "Other brand",
+    "import_freight_shock" = "Import x freight shock",
+    "rho"                  = "$\\rho^*$"
+  )
+  alpha_cell  <- "$-$0.310 (a)"
+  logit_rho   <- "0.000 (b)"
+  fmt_rho     <- function(b) paste0(sprintf("%.3f", b), " (b)")
+  sym_notes   <- NULL
+  gen_note    <- "*** p<0.01, ** p<0.05, * p<0.10. FEs by quarter. N=1,164. (a) calibrated alpha; (b) grid-searched rho*. Sections 4.2-4.3."
+  summ_rows   <- data.table(
+    variable = c("Quarter FEs", "Median implied $\\varepsilon_{jj}$", "RSS drop vs $\\rho$=0"),
+    M1 = c("Yes", "$-$2.62", "---"),
+    M2 = c("Yes", "$-$3.83", "3.1\\%"),
+    M3 = c("Yes", "$-$7.31", "8.1\\%")
+  )
+  col_names_t2 <- c("Variable","M1: Logit ($\\rho$=0)",
+                    "M2: Brand-Nested ($\\rho^*$=0.35)",
+                    "M3: CLIP-Nested ($\\rho^*$=0.67)")
+} else {
+  var_labels <- c(
+    "prices_alpha"         = "alpha (price)",
+    "pkg_size"             = "Package size (g)",
+    "joint_pc1"            = "CLIP PC1",
+    "joint_pc2"            = "CLIP PC2",
+    "joint_pc3"            = "CLIP PC3",
+    "joint_pc4"            = "CLIP PC4",
+    "joint_pc5"            = "CLIP PC5",
+    "is_other"             = "Other brand",
+    "import_freight_shock" = "Import x freight shock",
+    "rho"                  = "rho*"
+  )
+  alpha_cell  <- "-0.310 +"
+  logit_rho   <- "0.000 ++"
+  fmt_rho     <- function(b) paste0(sprintf("%.3f", b), " ++")
+  sym_notes   <- NULL
+  gen_note    <- paste0(
+    "Standard errors in parentheses. Significance: ***p<0.01, **p<0.05, *p<0.10. ",
+    "Quarter FEs absorbed by demeaning. 1,164 obs., 159 ASINs, 19 quarters. ",
+    "+ Calibrated: alpha = eps_target / median(p(1-s)) = -2.62/8.45. Not estimated. ",
+    "++ Grid-searched on {0, 0.01, ..., 0.90}; rho=0 fixed for M1."
+  )
+  summ_rows   <- data.table(
+    variable = c("Quarter FEs", "Median implied elasticity", "RSS drop vs rho=0"),
+    M1 = c("Yes", "-2.62", "--"),
+    M2 = c("Yes", "-3.83", "3.1%"),
+    M3 = c("Yes", "-7.31", "8.1%")
+  )
+  col_names_t2 <- c("Variable","M1: Logit (rho=0)",
+                    "M2: Brand-Nested (rho*=0.35)",
+                    "M3: CLIP-Nested (rho*=0.67)")
+}
+
+fmt_coef <- function(dt, model_name) {
+  dt2 <- dt[variable %in% names(var_labels)]
+  dt2[, cell := fcase(
+    variable == "prices_alpha",
+      alpha_cell,
+    variable == "rho" & model_name == "Logit",
+      logit_rho,
+    variable == "rho",
+      fmt_rho(beta),
+    !is.na(se),
+      paste0(sprintf("%.4f", beta), signif, " (", sprintf("%.4f", se), ")"),
+    default = ""
+  )]
+  dt2[, .(variable, cell)]
+}
+
+c1 <- fmt_coef(coef1, "Logit")
+c2 <- fmt_coef(coef2, "Brand-Nested")
+c3 <- fmt_coef(coef3, "CLIP-Nested")
+
+tab2 <- merge(c1, c2, by="variable", suffixes=c("_m1","_m2"))
+tab2 <- merge(tab2, c3, by="variable")
+setnames(tab2, c("cell","cell_m1","cell_m2"), c("M3","M1","M2"))
+tab2 <- tab2[match(names(var_labels), variable), .(variable, M1, M2, M3)]
+tab2[, variable := var_labels[variable]]
+tab2 <- rbind(tab2, summ_rows)
+n_main <- length(var_labels)
+
+kbl(tab2,
+    col.names = col_names_t2,
+    format    = tbl_fmt,
+    booktabs  = TRUE,
+    escape    = FALSE,
+    caption   = "Demand Parameter Estimates --- Three Models",
+    align     = c("l","c","c","c")) |>
+  kable_styling(
+    bootstrap_options = c("striped","hover","condensed"),
+    latex_options     = c("HOLD_position"),
+    font_size         = if (is_pdf) 9 else 13,
+    full_width        = FALSE
+  ) |>
+  row_spec(1, bold = TRUE, background = "#EEF2FF") |>
+  row_spec(n_main, extra_css = "border-bottom: 2px solid #aaa;",
+           hline_after = TRUE) |>
+  footnote(general = gen_note, escape = TRUE, threeparttable = TRUE, general_title = "Notes: ")
+```
+
+\vspace{1em}
+
+## Own-Price Elasticities by Brand
+
+Table 5 reports median own-price elasticities by brand group for each model. Two patterns are worth noting. First, within each model, elasticities scale with price levels -- the nested-logit own-price elasticity is proportional to $\alpha p_j$, so premium brands such as APAGARD and SENSODYNE PRONAMEL are mechanically the most elastic. Second, and more informative, moving from M1 to M3 amplifies all elasticities by roughly $1/(1-\rho^{*})$, but the amplification interacts with cluster composition: brands sharing a crowded embedding cluster face the strongest within-nest competition. The merging parties illustrate the point -- hello's median elasticity rises from $-1.42$ under plain logit to $-4.05$ under CLIP nesting, reflecting the intense substitution among the natural/specialty products in its cluster rather than substitution toward Colgate.
+
+```{r table_brand_elas}
+be <- rbindlist(list(
+  asin1[, .(model = "M1", brand = brand_grouped_50, elas = elas_own)],
+  asin2[, .(model = "M2", brand = brand_grouped_50, elas = elas_own)],
+  asin3[, .(model = "M3", brand = brand_grouped_50, elas = elas_own)]
+))
+bsum <- be[, .(med = median(elas, na.rm = TRUE)), by = .(model, brand)]
+bn   <- be[model == "M1", .(n_obs = .N), by = brand]
+bw   <- dcast(bsum, brand ~ model, value.var = "med")
+bw   <- merge(bn, bw, by = "brand")
+setorder(bw, M3)
+
+tab_be <- bw[, .(
+  brand,
+  n_obs,
+  M1 = sprintf("%.2f", M1),
+  M2 = sprintf("%.2f", M2),
+  M3 = sprintf("%.2f", M3)
+)]
+party_rows_be <- which(tab_be$brand %in% c("hello", "Colgate"))
+
+col_be <- c("Brand", "N obs.", "M1: Logit", "M2: Brand-Nested", "M3: CLIP-Nested")
+
+kbl(tab_be,
+    col.names = col_be,
+    format    = tbl_fmt,
+    booktabs  = TRUE,
+    escape    = TRUE,
+    caption   = "Median Own-Price Elasticities by Brand Group",
+    align     = c("l", "r", "r", "r", "r")) |>
+  row_spec(party_rows_be, bold = TRUE) |>
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    latex_options     = c("HOLD_position"),
+    font_size         = if (is_pdf) 9 else 13,
+    full_width        = FALSE
+  ) |>
+  footnote(general = paste0(
+    "Median own-price elasticity across all ASIN x quarter observations of each brand group, ",
+    "full estimation panel (1,164 observations). Elasticities use the nested-logit formula ",
+    "of Section 4.4 with the calibrated alpha (-0.310) and each model's profiled rho ",
+    "(0 for M1, 0.35 for M2, 0.67 for M3). ",
+    "Rows sorted by M3 elasticity; bold = merger parties."
+  ), escape = TRUE, threeparttable = TRUE, general_title = "Notes: ")
+```
+
+\vspace{1em}
+
+## Diversion Ratios
+
+The merger question turns on where hello's demand goes when its prices rise. Table 6 reports diversion ratios $DR_{j \to k} = -(\partial s_k / \partial p_j) / (\partial s_j / \partial p_j)$ from hello ASINs, aggregated into fixed reporting buckets (share-weighted across hello products and pre-merger quarters).
+
+```{r tab_diversion}
+div_dt <- fread(file.path(out_dir, "diversion_ratios.csv"))
+kbl(div_dt,
+    col.names = c("Model", "To Colgate", "To rest of hello's CLIP cluster",
+                  "To other inside goods", "To outside good"),
+    format    = tbl_fmt,
+    booktabs  = TRUE,
+    caption   = "Diversion from hello by Destination (percent of lost demand)",
+    align     = c("l", "r", "r", "r", "r")) |>
+  row_spec(3, bold = TRUE, background = "#D6EAD6") |>
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    latex_options     = c("HOLD_position"),
+    font_size         = if (is_pdf) 9 else 13,
+    full_width        = FALSE
+  ) |>
+  footnote(general = paste0(
+    "Share-weighted average across hello ASINs and pre-merger quarters (2018Q1--2019Q4), ",
+    "computed from each model's demand Jacobian at observed shares with the calibrated alpha ",
+    "and the model's profiled rho*. Reporting buckets are fixed across models: Colgate-brand ",
+    "products, remaining products in hello's CLIP cluster (C5), all other inside goods, and ",
+    "the outside good. Rows may not sum to 100 due to rounding."
+  ), escape = TRUE, threeparttable = TRUE, general_title = "Notes: ")
+```
+
+The three demand systems tell three different stories about the same market. Under plain logit, diversion is proportional to market shares, so `r sprintf("%.0f%%", div_dt[1, to_outside])` of hello's marginal demand flows to the outside good and only `r sprintf("%.1f%%", div_dt[1, to_colgate])` reaches Colgate. Brand nesting redirects substitution toward hello's own sister ASINs but leaves cross-brand diversion share-proportional. Under CLIP nesting, `r sprintf("%.0f%%", div_dt[3, to_cluster])` of hello's lost demand diverts to the other natural/specialty products in its cluster, while diversion to Colgate falls to `r sprintf("%.1f%%", div_dt[3, to_colgate])` -- the low-diversion configuration that drives the small simulated merger effect in the next subsection.
+
+## Merger Counterfactuals
+
+Table 7 reports the merger counterfactuals: observed prices, recovered marginal costs, the no-merger Nash equilibrium, the merger Nash equilibrium, and the implied price effect $\Delta p$ for the merging parties and the largest rivals. Under plain logit, where diversion is proportional to market shares, the simulated effect for hello is +1.23%; brand nesting barely changes it (+1.28%) because hello's ASINs sit in their own brand nest and diversion to Colgate is still share-proportional across nests. Under CLIP nesting, hello (cluster C5) and Colgate (cluster C2) are distant in product space, diversion between the parties is small, and the simulated hello effect falls to +0.40%, with Colgate's own effect economically negligible.
+
+```{r table3}
+focus   <- c("hello","Colgate","Tom's of Maine","Crest","Sensodyne")
+models  <- c("Logit","Brand-Nested","CLIP-Nested")
+n_focus <- length(focus)
+
+# For LaTeX: % is a comment character — escape it
+pct_sym3 <- if (is_pdf) "\\%" else "%"
+
+tab3_list <- lapply(models, function(m) {
+  sub <- merger[model==m & brand %in% focus]
+  sub <- sub[match(focus, brand)]
+  data.table(
+    brand     = sub$brand,
+    obs       = sprintf("%.2f", sub$avg_price_obs),
+    mc        = sprintf("%.2f", sub$avg_mc),
+    nomerger  = sprintf("%.2f", sub$price_nomerger),
+    merger_p  = sprintf("%.2f", sub$price_merger),
+    delta_abs = sprintf("%.3f", sub$price_merger - sub$price_nomerger),
+    delta_pct = paste0(sprintf("%.3f", sub$effect_pct), pct_sym3)
+  )
+})
+
+tab3_flat <- rbindlist(tab3_list)
+
+# Merger parties in the flat 15-row table (hello=row 1, Colgate=row 2 per block)
+party_rows <- c(1, 2, n_focus + 1, n_focus + 2, 2*n_focus + 1, 2*n_focus + 2)
+
+# Group header labels (LaTeX math for PDF)
+if (is_pdf) {
+  pg1 <- "M1: Logit ($\\rho$=0)"
+  pg2 <- "M2: Brand-Nested ($\\rho^*$=0.35)"
+  pg3 <- "M3: CLIP-Nested ($\\rho^*$=0.67)"
+} else {
+  pg1 <- "M1: Logit (rho=0)"
+  pg2 <- "M2: Brand-Nested (rho*=0.35)"
+  pg3 <- "M3: CLIP-Nested (rho*=0.67)"
+}
+
+col_t3 <- if (is_pdf) {
+  c("Brand", "Obs. $p$", "MC", "Nash (pre)", "Nash (post)", "$\\Delta p$", "$\\Delta p$ \\%")
+} else {
+  c("Brand", "Obs. p", "MC", "Nash (pre)", "Nash (post)", "Δp", "Δp %")
+}
+
+kbl(tab3_flat,
+    col.names = col_t3,
+    format    = tbl_fmt,
+    booktabs  = TRUE,
+    escape    = FALSE,
+    caption   = "Merger Counterfactuals: hello-to-Colgate Acquisition (2020Q1)",
+    align     = c("l","r","r","r","r","r","r")) |>
+  pack_rows(pg1, 1,            n_focus,   bold = TRUE, italic = TRUE, escape = FALSE) |>
+  pack_rows(pg2, n_focus + 1,  2*n_focus, bold = TRUE, italic = TRUE, escape = FALSE) |>
+  pack_rows(pg3, 2*n_focus + 1, 3*n_focus, bold = TRUE, italic = TRUE, escape = FALSE) |>
+  row_spec(party_rows, bold = TRUE) |>
+  kable_styling(
+    bootstrap_options = c("striped","hover","condensed"),
+    latex_options     = c("HOLD_position"),
+    font_size         = if (is_pdf) 8 else 13,
+    full_width        = FALSE
+  ) |>
+  footnote(
+    general = paste0(
+      "All prices USD; post-merger averages (2020Q1--2022Q3). ",
+      "Bold = merger parties. ",
+      "Nash (pre): Bertrand-Nash under pre-merger ownership. ",
+      "Nash (post): equilibrium under merged ownership. ",
+      "Dp = Nash (post) minus Nash (pre). ",
+      "MC inverted from pre-merger FOC and held fixed."
+    ),
+    escape         = TRUE,
+    threeparttable = TRUE,
+    general_title  = "Notes: "
+  )
+```
+
+Figure 3 traces the post-merger window quarter by quarter, showing the merger Nash equilibrium diverging from the no-merger counterfactual for hello while the two paths for Colgate remain indistinguishable.
+
+```{r figure2, fig.cap="Merger simulation price trajectories (Model 3, CLIP-Nested, $\\rho^*=0.67$). Top panel: Nash equilibrium prices under merged and pre-merger ownership. Observed prices are omitted from the top panel because their quarter-to-quarter variation (\\$4--\\$10) would compress the counterfactual divergence. Bottom panel: merger price effect in percent, $(p^{\\text{merger}} - p^{\\text{no-merger}})/p^{\\text{no-merger}} \\times 100$. hello (red) shows a positive and time-varying effect; Colgate (blue) remains near zero.", fig.width=7, fig.height=6}
+
+m3       <- fread(file.path(out_dir, "model3_asin_results.csv"))
+panel_m3 <- merge(panel, m3[,.(asin, quarter, price_nomerger, price_merger)],
+                  by=c("asin","quarter"), all.x=TRUE)
+
+MERGER_START <- "2020Q1"
+qtrs      <- sort(unique(panel_m3$quarter))
+post_qtrs <- qtrs[qtrs >= MERGER_START]
+
+price_avg <- panel_m3[brand_grouped_50 %in% c("hello","Colgate") &
+                      quarter %in% post_qtrs & !is.na(price_merger),
+  .(nomerger=mean(price_nomerger, na.rm=TRUE),
+    merger  =mean(price_merger,   na.rm=TRUE)),
+  by=.(brand=brand_grouped_50, quarter)]
+price_avg[, effect_pct := (merger-nomerger)/nomerger*100]
+
+price_long <- melt(price_avg[,.(brand,quarter,nomerger,merger)],
+                   id.vars=c("brand","quarter"),
+                   variable.name="series", value.name="price")
+price_long[, series := fifelse(series=="nomerger",
+                               "No-Merger Nash (counterfactual)",
+                               "Merger Nash (model)")]
+price_long[, series := factor(series,
+  levels=c("No-Merger Nash (counterfactual)","Merger Nash (model)"))]
+price_long[, qtr_num := match(quarter, post_qtrs)]
+
+# Annotation label for Colgate panel (lines visually overlap since Dp ~ 0.018%)
+colgate_annot <- data.table(
+  brand   = "Colgate",
+  qtr_num = length(post_qtrs) * 0.55,
+  price   = Inf,   # will be nudged to top via vjust
+  label   = "Lines overlap\n(Δp ≈ 0.018%)"
+)
+
+p_levels <- ggplot(price_long,
+                   aes(x=qtr_num, y=price, colour=series,
+                       linetype=series, group=series)) +
+  geom_line(linewidth=0.9) +
+  geom_point(size=1.9) +
+  geom_text(data=colgate_annot, aes(x=qtr_num, y=price, label=label),
+            inherit.aes=FALSE, vjust=1.3, size=2.5, colour="grey35",
+            fontface="italic", lineheight=0.9) +
+  scale_colour_manual(values=c("No-Merger Nash (counterfactual)"="#2563eb",
+                                "Merger Nash (model)"="#e15759"), name=NULL) +
+  scale_linetype_manual(values=c("No-Merger Nash (counterfactual)"="dashed",
+                                  "Merger Nash (model)"="solid"), name=NULL) +
+  scale_x_continuous(breaks=seq_along(post_qtrs), labels=post_qtrs) +
+  facet_wrap(~brand, scales="free_y", ncol=2) +
+  labs(y="Nash price ($)", x=NULL) +
+  theme_minimal(base_size=9) +
+  theme(legend.position="bottom",
+        axis.text.x=element_text(angle=45, hjust=1, size=7),
+        panel.grid.minor=element_blank(),
+        panel.grid.major=element_line(colour="grey92"),
+        strip.text=element_text(face="bold", size=10))
+
+price_avg[, brand := factor(brand, levels=c("Colgate","hello"))]
+p_effect <- ggplot(price_avg,
+                   aes(x=match(quarter, post_qtrs), y=effect_pct,
+                       colour=brand, group=brand)) +
+  geom_hline(yintercept=0, linetype="dashed", colour="grey65", linewidth=0.4) +
+  geom_line(linewidth=0.9) +
+  geom_point(size=2) +
+  scale_colour_manual(values=c("hello"="#e15759","Colgate"="#2563eb"), name=NULL) +
+  scale_x_continuous(breaks=seq_along(post_qtrs), labels=post_qtrs) +
+  labs(y="Merger effect (%)", x=NULL) +
+  theme_minimal(base_size=9) +
+  theme(legend.position="bottom",
+        axis.text.x=element_text(angle=45, hjust=1, size=7),
+        panel.grid.minor=element_blank(),
+        panel.grid.major=element_line(colour="grey92"))
+
+p_levels / p_effect + plot_layout(heights=c(2,1))
+```
+
+\vspace{1em}
+
+## Cross-Model Comparison
+
+The central economic-plausibility comparison across the three models is summarised below. The share of observations with **negative implied marginal costs** is the key diagnostic: when the demand system understates substitutability, the Bertrand inversion attributes implausibly large markups, pushing recovered costs below zero. CLIP-based nesting cuts the negative-MC rate from 8.6% to 1.7%, a five-fold reduction, and at the same time gives the largest RSS gain. That M1 and M2 display *exactly* the same negative-cost rate, cost levels, and Lerner indices is not a coincidence: because brand nests coincide with ownership boundaries, brand-nested Bertrand markups are identical to plain-logit markups for any $\rho$ (Section 4.4 and Appendix D). The cost side of the model can only improve when nests cut across firms, which is precisely what CLIP clustering delivers.
+
+```{r table4}
+pct4 <- if (is_pdf) "\\%" else "%"
+
+mods4 <- list(
+  list(lab = "M1: Logit",        coef = coef1, res = asin1, mname = "Logit"),
+  list(lab = "M2: Brand-Nested", coef = coef2, res = asin2, mname = "Brand-Nested"),
+  list(lab = "M3: CLIP-Nested",  coef = coef3, res = asin3, mname = "CLIP-Nested")
+)
+wf4 <- fread(file.path(out_dir, "welfare_effects.csv"))
+# RSS drop vs rho=0 from the concentrated OLS profile (see Table 4)
+rss_drop4 <- c(NA, 3.1, 8.1)
+
+tab4 <- rbindlist(lapply(seq_along(mods4), function(i) {
+  m       <- mods4[[i]]
+  rho_i   <- m$coef[variable == "rho", beta]
+  neg_mc  <- 100 * mean(m$res$mc < 0, na.rm = TRUE)
+  lerner  <- 100 * median((m$res$price_observed - m$res$mc) / m$res$price_observed,
+                          na.rm = TRUE)
+  med_el  <- median(m$res$elas_own, na.rm = TRUE)
+  hello_e <- merger[model == m$mname & brand == "hello",   effect_pct]
+  colg_e  <- merger[model == m$mname & brand == "Colgate", effect_pct]
+  data.table(
+    Model    = m$lab,
+    rho      = sprintf("%.2f", rho_i),
+    elas     = sprintf("%.2f", med_el),
+    rss      = if (is.na(rss_drop4[i])) "---" else
+                 paste0(sprintf("%.1f", rss_drop4[i]), pct4),
+    neg_mc   = paste0(sprintf("%.1f", neg_mc), pct4),
+    lerner   = paste0(sprintf("%.1f", lerner), pct4),
+    hello_dp = paste0("+", sprintf("%.2f", hello_e), pct4),
+    colg_dp  = paste0("+", sprintf("%.3f", colg_e), pct4),
+    dcs      = sprintf("%.1f", 1000 * wf4[model == m$lab, dcs_cents_per_consumer])
+  )
+}))
+
+col4 <- if (is_pdf) {
+  c("Model", "$\\rho^*$", "Med. $\\varepsilon_{jj}$", "RSS drop",
+    "Neg. MC \\%", "Med. Lerner", "hello $\\Delta p$", "Colgate $\\Delta p$",
+    "$\\Delta$CS")
+} else {
+  c("Model", "rho*", "Med. elasticity", "RSS drop",
+    "Neg. MC %", "Med. Lerner", "hello Dp", "Colgate Dp", "dCS")
+}
+
+kbl(tab4,
+    col.names = col4,
+    format    = tbl_fmt,
+    booktabs  = TRUE,
+    escape    = FALSE,
+    caption   = "Cross-Model Comparison: Demand Fit and Economic Plausibility",
+    align     = c("l", "c", "c", "c", "c", "c", "c", "c", "c")) |>
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    latex_options     = c("HOLD_position"),
+    font_size         = if (is_pdf) 9 else 13,
+    full_width        = FALSE
+  ) |>
+  row_spec(3, bold = TRUE, background = "#D6EAD6") |>
+  footnote(
+    general = paste0(
+      "All statistics over the full estimation panel (1,164 ASIN x quarter observations) ",
+      "except merger effects (post-merger quarters 2020Q1--2022Q3). ",
+      "Med. elasticity = median own-price elasticity. ",
+      "RSS drop = reduction in residual sum of squares vs rho=0 from the concentrated OLS profile. ",
+      "Neg. MC = share of observations with negative implied marginal cost from the Bertrand inversion ",
+      "(lower = more economically plausible). ",
+      "Med. Lerner = median (p - mc)/p. ",
+      "hello / Colgate Dp = average post-merger Nash price effect. ",
+      "dCS = mean change in consumer surplus, merger vs no-merger Nash, in cents per ",
+      "1,000 consumers per quarter (nested-logit log-sum formula). ",
+      "Bold/green row = preferred specification."
+    ),
+    escape         = TRUE,
+    threeparttable = TRUE,
+    general_title  = "Notes: "
+  )
+```
+
+---
+
+# Discussion and Limitations
+
+The findings should be read with the design's limitations in view; each is a deliberate trade-off rather than an oversight, and each points to a concrete extension.
+
+**Calibrated price coefficient.** Valid cost-side instruments are unavailable in this high-frequency online retail panel, so $\alpha$ is calibrated to an external meta-analytic elasticity rather than estimated. The choice makes the price-sensitivity assumption transparent, but it also means $\alpha$ is common across products and the level of all markups inherits the calibration. Because $\alpha$ is calibrated at $\rho = 0$, the nested models imply more elastic demand at their profiled $\rho^{*}$; the cross-model *comparison* of fit, negative-cost rates, and merger effects is unaffected, since all three models share the same $\alpha$. A natural extension is to construct differentiation instruments from the CLIP embeddings themselves -- rival products' embedding distances are plausibly excluded from a product's own demand shock -- and estimate $\alpha$ rather than calibrate it.
+
+**Demand-side cost recovery.** Marginal costs are recovered solely from the demand system and the Bertrand first-order conditions; without a supply-side cost equation, true cost variation cannot be separated from demand shocks absorbed into the inversion. The negative-cost rate is used here precisely as a *diagnostic* of demand misspecification, which is robust to this concern, but the recovered cost levels should not be interpreted structurally.
+
+**Fixed marginal costs and no efficiencies.** The counterfactuals hold costs at pre-merger levels, isolating the market-power effect of the ownership change. If the acquisition generated real marginal-cost efficiencies, the simulated price effects are upper bounds for the merged firm's products.
+
+**Static embeddings and cluster count.** Embeddings are extracted once per product, which is appropriate for listings that change little, but would miss repositioning. The number of clusters is selected at $K=5$; Appendix A shows the qualitative conclusions -- high $\rho^{*}$, low negative-cost rates, small hello effects -- are stable across $K = 2$ to $10$, though point estimates move.
+
+**Sparse purchase counts.** The crowdsourced panel records 2,787 toothpaste purchases across 1,164 ASIN x quarter cells -- a median of one purchasing household per cell -- so individual shares carry sampling noise. The three-quarter presence filter, quarterly aggregation, and the focus on cross-model *comparisons* (which hold the data fixed) mitigate this, but individual cell-level quantities should be read with appropriate caution.
+
+**External validity.** The analysis covers one category on one platform around one merger. The pipeline, however, requires only listing content, purchase counts, and prices -- data available for essentially any e-commerce category -- which is what makes the approach portable to other merger settings.
+
+---
+
+# Conclusion
+
+This paper provides evidence that substitution patterns constructed from unstructured product content outperform those built from brand labels in a workhorse merger-simulation framework. Replacing brand nests with CLIP-embedding clusters in a Berry (1994) nested logit raises demand fit, cuts the rate of economically implausible negative implied marginal costs from 8.6% to 1.7%, and changes the antitrust answer: the simulated price effect of the hello--Colgate acquisition for hello falls from +1.23% under plain logit to +0.40% under CLIP nesting, because the embeddings reveal that the merging parties occupy different regions of product space and divert little demand to one another.
+
+The broader message for practice is that the inputs to credible merger simulation need not be limited to structured characteristics data. Product images and listing text -- observable for any online market at essentially zero cost -- carry the differentiation consumers act on, and a pre-trained encoder plus standard clustering suffices to put that information into the tools antitrust economists already use. The entire analysis, from embeddings to Nash counterfactuals, is reproducible from a single document and a public repository, which is intended to make the method auditable in exactly the settings where it would be applied.
+
+---
+
+# Data and Code Availability {-}
+
+All data, code, and the R Markdown source of this paper are openly available at https://github.com/brkuzn/clip-amazon-toothpaste-market. Knitting the source document re-runs the entire pipeline -- the joint PCA, the $\rho$ grid searches, and the Bertrand--Nash equilibria -- and regenerates every table and figure from the included data. The repository also contains the CLIP extraction notebook, the joint-PCA construction script, and reference copies of all outputs; reproduction of the shipped joint principal components is byte-exact. Raw household-level purchase records with demographics are not redistributed and are available from the Open E-commerce 1.0 repository (Berke et al. 2024).
+
+# References {-}
+
+Berke, A., Calacci, D., Mahari, R., Yabe, T., Larson, K., \& Pentland, A. (2024). Open e-commerce 1.0, five years of crowdsourced U.S. Amazon purchase histories with user demographics. *Scientific Data*, 11, 491. https://doi.org/10.1038/s41597-024-03329-6
+
+Berry, S.T. (1994). Estimating discrete-choice models of product differentiation. *RAND Journal of Economics*, 25(2), 242--262.
+
+Bijmolt, T.H.A., van Heerde, H.J., \& Pieters, R.G.M. (2005). New empirical generalizations on the determinants of price elasticity. *Journal of Marketing Research*, 42(2), 141--156.
+
+Compiani, G., Morozov, I., \& Seiler, S. (2026). Demand estimation with text and image data. *The RAND Journal of Economics*. https://doi.org/10.1111/1756-2171.70052
+
+Conlon, C., \& Gortmaker, J. (2020). Best practices for differentiated products demand estimation with PyBLP. *RAND Journal of Economics*, 51(4), 1108--1161.
+
+Draganska, M., \& Jain, D.C. (2006). Consumer preferences and product-line pricing strategies: An empirical analysis. *Marketing Science*, 25(2), 164--174.
+
+Hotelling, H. (1933). Analysis of a complex of statistical variables into principal components. *Journal of Educational Psychology*, 24(6), 417--441.
+
+Lloyd, S.P. (1982). Least squares quantization in PCM. *IEEE Transactions on Information Theory*, 28(2), 129--137.
+
+Nevo, A. (2000). A practitioner's guide to estimation of random-coefficients logit models of demand. *Journal of Economics \& Management Strategy*, 9(4), 513--548.
+
+Nevo, A. (2001). Measuring market power in the ready-to-eat cereal industry. *Econometrica*, 69(2), 307--342.
+
+Radford, A., Kim, J.W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S., \ldots \& Sutskever, I. (2021). Learning transferable visual models from natural language supervision. *Proceedings of the 38th International Conference on Machine Learning (ICML)*, 8748--8763.
+
+Rousseeuw, P.J. (1987). Silhouettes: A graphical aid to the interpretation and validation of cluster analysis. *Journal of Computational and Applied Mathematics*, 20, 53--65.
+
+\clearpage
+
+# Appendix {-}
+
+## Appendix A: K Sensitivity Analysis {-}
+
+```{r appendix_k_sensitivity}
+# For PDF/LaTeX: % is a comment char → must escape as \%
+pct_sym <- if (is_pdf) "\\%" else "%"
+k_tbl <- ksens_dt[, .(
+  K           = K,
+  WCSS        = sprintf("%.1f",  wcss),
+  Silhouette  = sprintf("%.3f",  sil),
+  rho_star    = sprintf("%.2f",  rho_star),
+  rss_drop    = paste0(sprintf("%.1f", rss_drop),    pct_sym),
+  neg_mc      = paste0(sprintf("%.1f", neg_mc),      pct_sym),
+  hello_eff   = paste0(sprintf("%.2f", hello_eff),   pct_sym),
+  colgate_eff = paste0(sprintf("%.3f", colgate_eff), pct_sym)
+)]
+
+k5_row <- which(k_tbl$K == 5)
+
+if (is_pdf) {
+  col_k <- c("$K$", "WCSS", "Silhouette", "$\\rho^*$",
+             "RSS Drop", "Neg. MC\\%",
+             "hello $\\Delta p$\\%", "Colgate $\\Delta p$\\%")
+} else {
+  col_k <- c("K", "WCSS", "Silhouette", "rho*",
+             "RSS Drop", "Neg. MC%", "hello Dp%", "Colgate Dp%")
+}
+
+kbl(k_tbl,
+    col.names = col_k,
+    format    = tbl_fmt,
+    booktabs  = TRUE,
+    escape    = FALSE,
+    caption   = "K Sensitivity Analysis: CLIP Cluster Count K = 2--10",
+    align     = c("c","r","r","c","r","r","r","r")) |>
+  kable_styling(
+    bootstrap_options = c("striped","hover","condensed"),
+    latex_options     = c("HOLD_position"),
+    font_size         = if (is_pdf) 8 else 13,
+    full_width        = FALSE
+  ) |>
+  row_spec(k5_row, bold = TRUE, background = "#D6EAD6")
+```
+
+*Notes:* K-means on 5 CLIP PCs (seed 42, 50 restarts). WCSS = within-cluster sum of squares. Silhouette = average silhouette width (higher = better separation). $\rho^*$ = argmin RSS on grid [0, 0.01, ..., 0.90]. RSS drop = $100 \times (RSS_0 - RSS^*)/RSS_0$. Neg. MC = share of ASINs with negative implied marginal cost. hello / Colgate $\Delta p$ = average post-merger price effect in percent (2020Q1--2022Q3). **Bold/green row = selected specification (K=5).**
+
+\vspace{1em}
+
+## Appendix B: Model Fit --- RMSE and MAE {-}
+
+```{r appendix_rmse}
+model_order <- c("Logit","Brand-Nested","CLIP-Nested")
+model_lab   <- c("Logit"="M1: Logit","Brand-Nested"="M2: Brand-Nested","CLIP-Nested"="M3: CLIP-Nested")
+brand_order <- c("All","hello","Colgate")
+
+rmse_wide <- dcast(rmse_dt,
+                   brand ~ model,
+                   value.var = c("rmse_merger","rmse_nomerger","mae_merger","mae_nomerger"))
+
+# Build a clean 3-row table: brand | M1 RMSE/MAE | M2 RMSE/MAE | M3 RMSE/MAE
+fmt_cell <- function(rmse, mae) sprintf("%.3f / %.3f", rmse, mae)
+
+rmse_clean <- data.table(
+  Brand = brand_order,
+  M1 = mapply(fmt_cell,
+    rmse_wide[match(brand_order, brand), rmse_merger_Logit],
+    rmse_wide[match(brand_order, brand), mae_merger_Logit]),
+  M2 = mapply(fmt_cell,
+    rmse_wide[match(brand_order, brand), `rmse_merger_Brand-Nested`],
+    rmse_wide[match(brand_order, brand), `mae_merger_Brand-Nested`]),
+  M3 = mapply(fmt_cell,
+    rmse_wide[match(brand_order, brand), `rmse_merger_CLIP-Nested`],
+    rmse_wide[match(brand_order, brand), `mae_merger_CLIP-Nested`])
+)
+
+kbl(rmse_clean,
+    col.names = c("Brand / Scope",
+                  "M1: Logit",
+                  "M2: Brand-Nested",
+                  "M3: CLIP-Nested"),
+    format   = tbl_fmt,
+    booktabs = TRUE,
+    escape   = FALSE,
+    caption  = "Model Fit: RMSE / MAE vs. Observed Prices (Post-Merger Quarters 2020Q1--2022Q3)",
+    align    = c("l","c","c","c")) |>
+  add_header_above(c(" " = 1, "RMSE / MAE (USD)" = 3), escape = FALSE) |>
+  kable_styling(
+    bootstrap_options = c("striped","hover","condensed"),
+    latex_options     = c("HOLD_position"),
+    font_size         = if (is_pdf) 10 else 13,
+    full_width        = FALSE
+  ) |>
+  row_spec(1, bold = TRUE)
+```
+
+*Notes:* Each cell shows RMSE / MAE in USD against observed transaction prices. Nash (merger) prices are used as the model prediction. "All" = all 847 ASIN $\times$ quarter observations in the post-merger period (2020Q1--2022Q3); hello = 35 obs.; Colgate = 172 obs. Pre-merger marginal costs are held fixed in both Nash simulations.
+
+\vspace{1em}
+
+## Appendix C: Robustness Checks {-}
+
+```{r appendix_robustness}
+rob_dt <- fread(file.path(out_dir, "robustness_checks.csv"))
+pctR <- if (is_pdf) "\\%" else "%"
+rob_tab <- rob_dt[, .(
+  Scenario   = scenario,
+  lambda     = sprintf("%.2f", lambda),
+  alpha      = sprintf("%.3f", alpha),
+  rho        = sprintf("%.2f", rho_star),
+  rss        = paste0(sprintf("%.1f", rss_drop), pctR),
+  negmc      = paste0(sprintf("%.1f", neg_mc), pctR),
+  hello_dp   = paste0("+", sprintf("%.3f", hello_eff), pctR),
+  colgate_dp = paste0("+", sprintf("%.3f", colgate_eff), pctR)
+)]
+base_rows <- which(grepl("baseline", rob_tab$Scenario))
+
+colR <- if (is_pdf) {
+  c("Scenario", "$\\lambda$", "$\\alpha$", "$\\rho^*$", "RSS drop",
+    "Neg. MC \\%", "hello $\\Delta p$", "Colgate $\\Delta p$")
+} else {
+  c("Scenario", "lambda", "alpha", "rho*", "RSS drop",
+    "Neg. MC %", "hello Dp", "Colgate Dp")
+}
+
+kbl(rob_tab,
+    col.names = colR,
+    format    = tbl_fmt,
+    booktabs  = TRUE,
+    escape    = FALSE,
+    caption   = "Robustness: Market Size, Calibration Level, and Cost Window",
+    align     = c("l", "r", "r", "c", "r", "r", "r", "r")) |>
+  row_spec(base_rows, bold = TRUE) |>
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    latex_options     = c("HOLD_position"),
+    font_size         = if (is_pdf) 8 else 13,
+    full_width        = FALSE
+  )
+```
+
+*Notes:* Bold rows are the baseline specifications. **Market size** rows multiply $\lambda$ (and hence market size $M_t$) by 2, 5, and 10; $\alpha$ is recalibrated to the $-2.62$ target at $\rho=0$ within each scenario. Fit and the negative-cost rate are essentially unchanged; absolute merger effects shrink mechanically as more diversion flows to the outside good, while the M1-to-M3 ratio of hello effects is stable. **Alpha recalibrated at $\rho^{*}$** rows hold the baseline profiled $\rho^{*}$ fixed and rescale $\alpha$ so the model's own implied median elasticity equals $-2.62$; the resulting small $|\alpha|$ inflates Bertrand markups and drives negative-cost rates far above the plain-logit level, indicating that ASIN-level demand must be more elastic than the aggregate benchmark to rationalize observed prices. **MC from 2019Q4 only** fixes marginal costs at the last pre-merger quarter instead of the pre-merger average.
+
+\vspace{1em}
+
+## Appendix D: Equivalence of plain-logit and brand-nested markups {-}
+
+**Proposition.** Consider nested-logit demand with nesting parameter $\rho \in [0,1)$ and Bertrand competition, and suppose the nest partition refines the ownership partition: every nest $g$ is wholly owned by a single firm. Then the multiproduct Bertrand markups solving the first-order conditions at given shares are identical to the plain-logit ($\rho = 0$) markups: for every product $j$ of firm $f$, $p_j - mc_j = 1/(|\alpha|(1 - S_f))$, where $S_f = \sum_{k \in f} s_k$ is the firm's inside share.
+
+**Proof.** Write $x_k = p_k - mc_k$. Firm $f$'s first-order condition for product $j$ is $s_j + \sum_{k \in f} x_k\, \partial s_k / \partial p_j = 0$. Under plain logit, substituting the share derivatives and dividing by $\alpha s_j$ gives $x_j - \sum_{k \in f} s_k x_k = -1/\alpha$, whose solution is uniform within the firm: $x_j = \mu_f$ with $\mu_f(1 - S_f) = -1/\alpha$. Under nested logit with $j$ in nest $g \subseteq f$, the same substitution gives
+
+$$\frac{x_j}{1-\rho} - \frac{\rho}{1-\rho} \sum_{k \in g} s_{k|g}\, x_k - \sum_{k \in f} s_k x_k = -\frac{1}{\alpha}.$$
+
+Try the uniform candidate $x_k = \mu_f$ for all $k \in f$. Because the entire nest $g$ belongs to firm $f$, the within-nest shares sum to one, $\sum_{k \in g} s_{k|g} = 1$, so the first two terms collapse to $\mu_f\left(\tfrac{1}{1-\rho} - \tfrac{\rho}{1-\rho}\right) = \mu_f$, and the condition reduces to $\mu_f (1 - S_f) = -1/\alpha$ — the plain-logit equation. Since the system $(\Omega \circ \Delta)\,\mathbf{x} = -\mathbf{s}$ is invertible in our data, this uniform solution is the unique solution, and it does not depend on $\rho$. $\square$
+
+The empirical counterpart is exact: across all 1,164 observations, M1 and M2 marginal costs agree to machine precision. The equivalence breaks whenever a nest spans products of different owners — the CLIP clusters do, which is why M3 recovers different (and far more plausible) costs.
