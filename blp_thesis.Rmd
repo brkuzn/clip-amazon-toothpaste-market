@@ -1196,6 +1196,6 @@ kbl(rob_tab,
 
 $$\frac{x_j}{1-\rho} - \frac{\rho}{1-\rho} \sum_{k \in g} s_{k|g}\, x_k - \sum_{k \in f} s_k x_k = -\frac{1}{\alpha}.$$
 
-Try the uniform candidate $x_k = \mu_f$ for all $k \in f$. Because the entire nest $g$ belongs to firm $f$, the within-nest shares sum to one, $\sum_{k \in g} s_{k|g} = 1$, so the first two terms collapse to $\mu_f\left(\tfrac{1}{1-\rho} - \tfrac{\rho}{1-\rho}\right) = \mu_f$, and the condition reduces to $\mu_f (1 - S_f) = -1/\alpha$ — the plain-logit equation. Since the system $(\Omega \circ \Delta)\,\mathbf{x} = -\mathbf{s}$ is invertible in our data, this uniform solution is the unique solution, and it does not depend on $\rho$. $\square$
+Try the uniform candidate $x_k = \mu_f$ for all $k \in f$. Because the entire nest $g$ belongs to firm $f$, the within-nest shares sum to one, $\sum_{k \in g} s_{k|g} = 1$, so the first two terms collapse to $\mu_f\left(\tfrac{1}{1-\rho} - \tfrac{\rho}{1-\rho}\right) = \mu_f$, and the condition reduces to $\mu_f (1 - S_f) = -1/\alpha$ — the plain-logit equation. Since the system $(\Omega \circ \Delta)\,\mathbf{x} = -\mathbf{s}$ is invertible in our data, this uniform solution is the unique solution, and it does not depend on $\rho$.\hfill$\square$
 
 The empirical counterpart is exact: across all 1,164 observations, M1 and M2 marginal costs agree to machine precision. The equivalence breaks whenever a nest spans products of different owners — the CLIP clusters do, which is why M3 recovers different (and far more plausible) costs.

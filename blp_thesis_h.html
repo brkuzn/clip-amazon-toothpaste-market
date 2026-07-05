@@ -1739,18 +1739,17 @@ embeddings; nested logit; merger simulation; antitrust.</p>
 <div id="introduction" class="section level1" number="1">
 <h1><span class="header-section-number">1</span> Introduction</h1>
 <p>Antitrust authorities increasingly confront mergers in digital
-markets – characteristically, an established incumbent acquiring a
-fast-growing, digitally native brand – in which product differentiation
-is not described by standardised attributes. In a car merger the analyst
-observes horsepower and fuel economy; in a laptop merger, RAM and screen
-size. In an online consumer-goods merger, the economically relevant
-differentiation – a “natural” positioning, sensitivity relief, visual
-branding, a kid-friendly format – lives in unstructured listing content:
-product images, titles, and free-form benefit descriptions. The
-workhorse tools of merger simulation, however, were built for the
-structured world. Nested-logit models encode substitution through nest
-assignments constructed from coarse observable labels, most commonly
-brand identity or hand-picked segments, and when those labels
+markets, typically an established incumbent buying a fast-growing
+digital-native brand, where product differentiation is not captured by
+standardised attributes. In a car merger the analyst observes horsepower
+and fuel economy; in a laptop merger, RAM and screen size. Online
+consumer goods are different. There the differentiation that matters – a
+“natural” positioning, sensitivity relief, a kid-friendly format – lives
+in unstructured listing content: product images, titles, and free-form
+benefit descriptions. The workhorse tools of merger simulation were
+built for the structured world. Nested-logit models encode substitution
+through nest assignments constructed from coarse observable labels,
+usually brand identity or hand-picked segments; when those labels
 misrepresent how consumers perceive products, the resulting diversion
 ratios, markups, and simulated price effects inherit the error.</p>
 <p>A second, equally practical obstacle compounds the first. Estimating
@@ -1769,18 +1768,18 @@ at its centre.</p>
 <p>This paper offers a pragmatic pipeline for exactly that environment,
 with one methodological contribution at its core. The pipeline maps
 unstructured product listings into a continuous differentiation space
-using a pre-trained deep learning model – CLIP image and text embeddings
-(Radford et al. 2021), reduced to five joint principal components – and
+using a pre-trained deep learning model: CLIP image and text embeddings
+(Radford et al. 2021), reduced to five joint principal components. It
 sidesteps the missing-instrument problem by calibrating the price
 coefficient to an established industry elasticity, the meta-analytic
 mean own-price elasticity of <span class="math inline">\(-2.62\)</span>
 for consumer packaged goods (Bijmolt, van Heerde, and Pieters 2005). The
 contribution lies in what the embeddings are used <em>for</em>: nests
-are assigned by k-means clustering in the embedding space rather than by
-brand. Holding everything else fixed, we compare three Berry (1994)
-nested-logit models that differ only in their nest assignment – no
-nesting, brand nesting, and CLIP-cluster nesting – and let the
-negative-cost diagnostic adjudicate between them.</p>
+come from k-means clustering in the embedding space, not from brand.
+Holding everything else fixed, we compare three Berry (1994)
+nested-logit models that differ only in their nest assignment (no
+nesting, brand nesting, and CLIP-cluster nesting) and let the
+negative-cost diagnostic decide between them.</p>
 <p>The empirical laboratory is Colgate-Palmolive’s acquisition of hello
 Products LLC, a fast-growing premium “naturally friendly” oral-care
 brand. The deal was announced on 23 January 2020 and completed on 31
@@ -1832,7 +1831,7 @@ differentiated products. Berry (1994) shows that logit and nested-logit
 demand can be estimated by linear methods after inverting market shares,
 and that the same first-order conditions used to rationalise observed
 prices can be inverted to recover marginal costs under Bertrand
-competition. Nevo (2000) provides the canonical practitioner’s treatment
+competition. Nevo (2000) provides the standard practitioner’s treatment
 of this class of models, and Nevo (2001) demonstrates the full
 structural program – demand estimates, recovered margins, and
 competitive counterfactuals – in the ready-to-eat cereal industry, a
@@ -2980,16 +2979,16 @@ Grid-searched on {0, 0.01, …, 0.90}; rho=0 fixed for M1.
 Elasticities by Brand</h2>
 <p>Table 5 reports median own-price elasticities by brand group for each
 model. Two patterns are worth noting. First, within each model,
-elasticities scale with price levels – the nested-logit own-price
+elasticities scale with price levels. Because the nested-logit own-price
 elasticity is proportional to <span class="math inline">\(\alpha
-p_j\)</span>, so premium brands such as APAGARD and SENSODYNE PRONAMEL
-are mechanically the most elastic. Second, and more informative, moving
-from M1 to M3 amplifies all elasticities by roughly <span class="math inline">\(1/(1-\rho^{*})\)</span>, but the amplification
+p_j\)</span>, premium brands such as APAGARD and SENSODYNE PRONAMEL are
+mechanically the most elastic. Second, and more informative, moving from
+M1 to M3 amplifies all elasticities by roughly <span class="math inline">\(1/(1-\rho^{*})\)</span>, but the amplification
 interacts with cluster composition: brands sharing a crowded embedding
 cluster face the strongest within-nest competition. The merging parties
-illustrate the point – hello’s median elasticity rises from <span class="math inline">\(-1.42\)</span> under plain logit to <span class="math inline">\(-4.05\)</span> under CLIP nesting, reflecting the
-intense substitution among the natural/specialty products in its cluster
-rather than substitution toward Colgate.</p>
+show the pattern. hello’s median elasticity rises from <span class="math inline">\(-1.42\)</span> under plain logit to <span class="math inline">\(-4.05\)</span> under CLIP nesting, because its
+close substitutes are the natural/specialty products in its own cluster,
+not Colgate.</p>
 <table class="table table-striped table-hover table-condensed" style="font-size: 13px; width: auto !important; margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption style="font-size: initial !important;">
 Median Own-Price Elasticities by Brand Group
@@ -4011,7 +4010,7 @@ portable to other merger settings.</p>
 <h1><span class="header-section-number">7</span> Conclusion</h1>
 <p>This paper provides evidence that substitution patterns constructed
 from unstructured product content outperform those built from brand
-labels in a workhorse merger-simulation framework. Replacing brand nests
+labels in a standard merger-simulation framework. Replacing brand nests
 with CLIP-embedding clusters in a Berry (1994) nested logit raises
 demand fit, cuts the rate of economically implausible negative implied
 marginal costs from 8.6% to 1.7%, and changes the antitrust answer: the
@@ -4021,8 +4020,8 @@ embeddings reveal that the merging parties occupy different regions of
 product space and divert little demand to one another.</p>
 <p>The broader message for practice is that the inputs to credible
 merger simulation need not be limited to structured characteristics
-data. Product images and listing text – observable for any online market
-at essentially zero cost – carry the differentiation consumers act on,
+data. Product images and listing text, observable for any online market
+at essentially zero cost, carry the differentiation consumers act on,
 and a pre-trained encoder plus standard clustering suffices to put that
 information into the tools antitrust economists already use. The entire
 analysis, from embeddings to Nash counterfactuals, is reproducible from
@@ -4820,7 +4819,7 @@ sum to one, <span class="math inline">\(\sum_{k \in g} s_{k|g} =
 to <span class="math inline">\(\mu_f (1 - S_f) = -1/\alpha\)</span> —
 the plain-logit equation. Since the system <span class="math inline">\((\Omega \circ \Delta)\,\mathbf{x} =
 -\mathbf{s}\)</span> is invertible in our data, this uniform solution is
-the unique solution, and it does not depend on <span class="math inline">\(\rho\)</span>. <span class="math inline">\(\square\)</span></p>
+the unique solution, and it does not depend on <span class="math inline">\(\rho\)</span>.<span class="math inline">\(\square\)</span></p>
 <p>The empirical counterpart is exact: across all 1,164 observations, M1
 and M2 marginal costs agree to machine precision. The equivalence breaks
 whenever a nest spans products of different owners — the CLIP clusters
