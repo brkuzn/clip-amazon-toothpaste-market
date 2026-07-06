@@ -1747,24 +1747,25 @@ consumer goods are different. There the differentiation that matters – a
 “natural” positioning, sensitivity relief, a kid-friendly format – lives
 in unstructured listing content: product images, titles, and free-form
 benefit descriptions. The workhorse tools of merger simulation were
-built for the structured world. Nested-logit models encode substitution
-through nest assignments constructed from coarse observable labels,
-usually brand identity or hand-picked segments; when those labels
-misrepresent how consumers perceive products, the resulting diversion
-ratios, markups, and simulated price effects inherit the error.</p>
+built for the structured world. Nested-logit models (McFadden 1978)
+encode substitution through nest assignments constructed from coarse
+observable labels, usually brand identity or hand-picked segments; when
+those labels misrepresent how consumers perceive products, the resulting
+diversion ratios, markups, and simulated price effects inherit the
+error.</p>
 <p>A second, equally practical obstacle compounds the first. Estimating
 price sensitivity credibly requires exogenous cost-side variation, and
 high-frequency online retail data rarely contain any: input-cost series
 vary only over time and are absorbed by time fixed effects, while
-Hausman-style rival-price instruments fail when demand shocks are
-correlated across markets, as they plainly are on a single national
-platform. The symptom of proceeding without valid instruments is well
-known to practitioners: demand estimated far too inelastic, implying
-Bertrand markups so large that the marginal costs recovered from the
-first-order conditions turn <em>negative</em> for a substantial share of
-products. The negative-cost rate directly measures how badly a demand
-system describes competition, and it is the diagnostic this paper puts
-at its centre.</p>
+Hausman-style rival-price instruments (Hausman 1996) fail when demand
+shocks are correlated across markets, as they plainly are on a single
+national platform. The symptom of proceeding without valid instruments
+is well known to practitioners: demand estimated far too inelastic,
+implying Bertrand markups so large that the marginal costs recovered
+from the first-order conditions turn <em>negative</em> for a substantial
+share of products. The negative-cost rate directly measures how badly a
+demand system describes competition, and it is the diagnostic this paper
+puts at its centre.</p>
 <p>This paper offers a pragmatic pipeline for exactly that environment,
 with one methodological contribution at its core. The pipeline maps
 unstructured product listings into a continuous differentiation space
@@ -1831,23 +1832,33 @@ differentiated products. Berry (1994) shows that logit and nested-logit
 demand can be estimated by linear methods after inverting market shares,
 and that the same first-order conditions used to rationalise observed
 prices can be inverted to recover marginal costs under Bertrand
-competition. Nevo (2000) provides the standard practitioner’s treatment
-of this class of models, and Nevo (2001) demonstrates the full
-structural program – demand estimates, recovered margins, and
-competitive counterfactuals – in the ready-to-eat cereal industry, a
-consumer packaged goods setting closely analogous to toothpaste. Conlon
-and Gortmaker (2020) codify current best practice and provide the PyBLP
-routines against which this paper’s equilibrium computations are
-validated. Draganska and Jain (2006) estimate structural demand for
-differentiated CPG product lines and report own-price elasticities of
-the magnitude used for calibration here.</p>
+competition. Berry, Levinsohn, and Pakes (1995) generalise this
+framework to random-coefficients demand; Grigolon and Verboven (2014)
+show that a well-specified nested logit often approximates
+random-coefficients substitution patterns closely, which makes the
+choice of nests – the object studied here – the binding constraint in
+practice. Nevo (2000a) provides the standard practitioner’s treatment of
+this class of models, and Nevo (2001) demonstrates the full structural
+program – demand estimates, recovered margins, and competitive
+counterfactuals – in the ready-to-eat cereal industry, a consumer
+packaged goods setting closely analogous to toothpaste. Merger
+simulation itself follows Werden and Froeb (1994) and Nevo (2000b):
+recover marginal costs from the pre-merger equilibrium, change the
+ownership structure, and re-solve for Bertrand-Nash prices – computed
+here with the damped fixed-point iteration analysed by Morrow and
+Skerlos (2011). Conlon and Gortmaker (2020) codify current best practice
+and provide the PyBLP routines against which this paper’s equilibrium
+computations are validated. Draganska and Jain (2006) estimate
+structural demand for differentiated CPG product lines and report
+own-price elasticities of the magnitude used for calibration here.</p>
 <p>Within this tradition, the paper’s price coefficient is calibrated
 rather than instrumented. The target elasticity of <span class="math inline">\(-2.62\)</span> comes from Bijmolt, van Heerde, and
 Pieters (2005), who meta-analyse 1,851 own-price elasticity estimates
 from 81 studies and report <span class="math inline">\(-2.62\)</span> as
 the mean. Calibration to an external elasticity is standard in applied
-antitrust simulation when credible cost-side instruments are
-unavailable, and it has a transparency advantage in a practitioner
+antitrust simulation when credible cost-side instruments are unavailable
+(the logit merger calibrations of Werden and Froeb 1994 are the
+template), and it has a transparency advantage in a practitioner
 context: the price-sensitivity assumption is stated in one number rather
 than buried in a first stage.</p>
 <p>The use of unstructured data is most closely related to Compiani,
@@ -2108,7 +2119,8 @@ its listing image and the concatenation of its title and benefit
 description. CLIP (Contrastive Language-Image Pre-training; Radford et
 al. 2021) provides an image encoder <span class="math inline">\(f_I\)</span> and a text encoder <span class="math inline">\(f_T\)</span>, trained contrastively so that
 matching image–text pairs lie close together in a shared representation
-space. Both encoders (<code>clip-vit-base-patch32</code>) map into <span class="math inline">\(\mathbb{R}^{512}\)</span>, and outputs are
+space. Both encoders (<code>clip-vit-base-patch32</code>, a Vision
+Transformer; Dosovitskiy et al. 2021) map into <span class="math inline">\(\mathbb{R}^{512}\)</span>, and outputs are
 L2-normalised:</p>
 <p><span class="math display">\[\mathbf{e}^{I}_{j} =
 \frac{f_I(\text{image}_j)}{\lVert f_I(\text{image}_j) \rVert}, \qquad
@@ -2625,7 +2637,9 @@ s_{j|g,t} = \alpha\,p_{jt} + \boldsymbol{\beta}&#39;\mathbf{x}_{jt} +
 <p>where <span class="math inline">\(s_{j|g,t} = s_{jt}/\!\sum_{k\in
 g}s_{kt}\)</span> is the within-nest share, <span class="math inline">\(\rho\in[0,1)\)</span> is the nesting intensity,
 and <span class="math inline">\(\text{FE}_t\)</span> are quarter fixed
-effects (absorbed by within-quarter demeaning).</p>
+effects (absorbed by within-quarter demeaning). The underlying choice
+model is the generalised-extreme-value family of McFadden (1974, 1978),
+of which the nested logit is the leading closed-form member.</p>
 </div>
 <div id="price-coefficient-calibration" class="section level2" number="4.2">
 <h2><span class="header-section-number">4.2</span> Price Coefficient
@@ -2713,13 +2727,14 @@ observed shares coincide.</p>
 <p>Marginal costs are averaged per ASIN across pre-merger quarters and
 held fixed in both counterfactuals. Holding costs at pre-merger values
 serves two purposes: it embodies the standard no-efficiencies assumption
-of prospective merger review, and it avoids a mechanical tautology – if
-costs were re-inverted in post-merger quarters, the no-merger Nash
-equilibrium would recover observed prices by construction, since the
-first-order condition is the identity that defined those costs.</p>
+of prospective merger review (Farrell and Shapiro 1990), and it avoids a
+mechanical tautology – if costs were re-inverted in post-merger
+quarters, the no-merger Nash equilibrium would recover observed prices
+by construction, since the first-order condition is the identity that
+defined those costs.</p>
 <p>Two Nash equilibria are then computed for every post-merger quarter
 via a damped fixed-point iteration on the Bertrand first-order
-conditions:</p>
+conditions (Morrow and Skerlos 2011):</p>
 <p><span class="math display">\[\mathbf{p}_{n+1} =
 \lambda\left[\mathbf{mc} - (\Omega \circ
 \Delta(\mathbf{p}_n))^{-1}\mathbf{s}(\mathbf{p}_n)\right] +
@@ -3243,7 +3258,9 @@ merger parties.
 prices rise. Table 6 reports diversion ratios <span class="math inline">\(DR_{j \to k} = -(\partial s_k / \partial p_j) /
 (\partial s_j / \partial p_j)\)</span> from hello ASINs, aggregated into
 fixed reporting buckets (share-weighted across hello products and
-pre-merger quarters).</p>
+pre-merger quarters). Diversion ratios are the central input of modern
+unilateral-effects screening (Farrell and Shapiro 2010; Conlon and
+Mortimer 2021).</p>
 <table class="table table-striped table-hover table-condensed" style="font-size: 13px; width: auto !important; margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption style="font-size: initial !important;">
 Diversion from hello by Destination (percent of lost demand)
@@ -3802,7 +3819,10 @@ cost levels, and Lerner indices is not a coincidence: because brand
 nests coincide with ownership boundaries, brand-nested Bertrand markups
 are identical to plain-logit markups for any <span class="math inline">\(\rho\)</span> (Section 4.4 and Appendix D). The
 cost side of the model can only improve when nests cut across firms,
-which is precisely what CLIP clustering delivers.</p>
+which is precisely what CLIP clustering delivers. The final column
+translates the price effects into consumer terms via the nested-logit
+inclusive-value formula (Small and Rosen 1981); implied consumer harm
+under CLIP nesting is roughly a third of the logit-implied harm.</p>
 <table class="table table-striped table-hover table-condensed" style="font-size: 13px; width: auto !important; margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption style="font-size: initial !important;">
 Cross-Model Comparison: Demand Fit and Economic Plausibility
@@ -3969,9 +3989,11 @@ and the level of all markups inherits the calibration. Because <span class="math
 elastic demand at their profiled <span class="math inline">\(\rho^{*}\)</span>; the cross-model
 <em>comparison</em> of fit, negative-cost rates, and merger effects is
 unaffected, since all three models share the same <span class="math inline">\(\alpha\)</span>. A natural extension is to
-construct differentiation instruments from the CLIP embeddings
-themselves – rival products’ embedding distances are plausibly excluded
-from a product’s own demand shock – and estimate <span class="math inline">\(\alpha\)</span> rather than calibrate it.</p>
+construct differentiation instruments (Gandhi and Houde 2019) from the
+CLIP embeddings themselves – rival products’ embedding distances are
+plausibly excluded from a product’s own demand shock – and estimate
+<span class="math inline">\(\alpha\)</span> rather than calibrate
+it.</p>
 <p><strong>Demand-side cost recovery.</strong> Marginal costs are
 recovered solely from the demand system and the Bertrand first-order
 conditions; without a supply-side cost equation, true cost variation
@@ -4051,6 +4073,8 @@ U.S. Amazon purchase histories with user demographics. <em>Scientific
 Data</em>, 11, 491. <a href="https://doi.org/10.1038/s41597-024-03329-6" class="uri">https://doi.org/10.1038/s41597-024-03329-6</a></p>
 <p>Berry, S.T. (1994). Estimating discrete-choice models of product
 differentiation. <em>RAND Journal of Economics</em>, 25(2), 242–262.</p>
+<p>Berry, S.T., Levinsohn, J., &amp; Pakes, A. (1995). Automobile prices
+in market equilibrium. <em>Econometrica</em>, 63(4), 841–890.</p>
 <p>Bijmolt, T.H.A., van Heerde, H.J., &amp; Pieters, R.G.M. (2005). New
 empirical generalizations on the determinants of price elasticity.
 <em>Journal of Marketing Research</em>, 42(2), 141–156.</p>
@@ -4059,17 +4083,55 @@ with text and image data. <em>The RAND Journal of Economics</em>. <a href="https
 <p>Conlon, C., &amp; Gortmaker, J. (2020). Best practices for
 differentiated products demand estimation with PyBLP. <em>RAND Journal
 of Economics</em>, 51(4), 1108–1161.</p>
+<p>Conlon, C., &amp; Mortimer, J.H. (2021). Empirical properties of
+diversion ratios. <em>RAND Journal of Economics</em>, 52(4),
+693–726.</p>
+<p>Dosovitskiy, A., Beyer, L., Kolesnikov, A., Weissenborn, D., Zhai,
+X., Unterthiner, T., &amp; Houlsby, N. (2021). An image is worth 16x16
+words: Transformers for image recognition at scale. <em>International
+Conference on Learning Representations (ICLR)</em>.</p>
 <p>Draganska, M., &amp; Jain, D.C. (2006). Consumer preferences and
 product-line pricing strategies: An empirical analysis. <em>Marketing
 Science</em>, 25(2), 164–174.</p>
+<p>Farrell, J., &amp; Shapiro, C. (1990). Horizontal mergers: An
+equilibrium analysis. <em>American Economic Review</em>, 80(1),
+107–126.</p>
+<p>Farrell, J., &amp; Shapiro, C. (2010). Antitrust evaluation of
+horizontal mergers: An economic alternative to market definition.
+<em>The B.E. Journal of Theoretical Economics</em>, 10(1), Article
+9.</p>
+<p>Gandhi, A., &amp; Houde, J.-F. (2019). Measuring substitution
+patterns in differentiated-products industries. NBER Working Paper
+26375.</p>
+<p>Grigolon, L., &amp; Verboven, F. (2014). Nested logit or random
+coefficients logit? A comparison of alternative discrete choice models
+of product differentiation. <em>Review of Economics and Statistics</em>,
+96(5), 916–935.</p>
+<p>Hausman, J.A. (1996). Valuation of new goods under perfect and
+imperfect competition. In T.F. Bresnahan &amp; R.J. Gordon (Eds.),
+<em>The Economics of New Goods</em> (pp. 209–237). University of Chicago
+Press.</p>
 <p>Hotelling, H. (1933). Analysis of a complex of statistical variables
 into principal components. <em>Journal of Educational Psychology</em>,
 24(6), 417–441.</p>
 <p>Lloyd, S.P. (1982). Least squares quantization in PCM. <em>IEEE
 Transactions on Information Theory</em>, 28(2), 129–137.</p>
-<p>Nevo, A. (2000). A practitioner’s guide to estimation of
+<p>McFadden, D. (1974). Conditional logit analysis of qualitative choice
+behavior. In P. Zarembka (Ed.), <em>Frontiers in Econometrics</em>
+(pp. 105–142). Academic Press.</p>
+<p>McFadden, D. (1978). Modelling the choice of residential location. In
+A. Karlqvist, L. Lundqvist, F. Snickars, &amp; J.W. Weibull (Eds.),
+<em>Spatial Interaction Theory and Planning Models</em> (pp. 75–96).
+North-Holland.</p>
+<p>Morrow, W.R., &amp; Skerlos, S.J. (2011). Fixed-point approaches to
+computing Bertrand-Nash equilibrium prices under mixed-logit demand.
+<em>Operations Research</em>, 59(2), 328–345.</p>
+<p>Nevo, A. (2000a). A practitioner’s guide to estimation of
 random-coefficients logit models of demand. <em>Journal of Economics
 &amp; Management Strategy</em>, 9(4), 513–548.</p>
+<p>Nevo, A. (2000b). Mergers with differentiated products: The case of
+the ready-to-eat cereal industry. <em>RAND Journal of Economics</em>,
+31(3), 395–421.</p>
 <p>Nevo, A. (2001). Measuring market power in the ready-to-eat cereal
 industry. <em>Econometrica</em>, 69(2), 307–342.</p>
 <p>Radford, A., Kim, J.W., Hallacy, C., Ramesh, A., Goh, G., Agarwal,
@@ -4079,6 +4141,12 @@ Conference on Machine Learning (ICML)</em>, 8748–8763.</p>
 <p>Rousseeuw, P.J. (1987). Silhouettes: A graphical aid to the
 interpretation and validation of cluster analysis. <em>Journal of
 Computational and Applied Mathematics</em>, 20, 53–65.</p>
+<p>Small, K.A., &amp; Rosen, H.S. (1981). Applied welfare economics with
+discrete choice models. <em>Econometrica</em>, 49(1), 105–130.</p>
+<p>Werden, G.J., &amp; Froeb, L.M. (1994). The effects of mergers in
+differentiated products industries: Logit demand and merger policy.
+<em>Journal of Law, Economics, &amp; Organization</em>, 10(2),
+407–426.</p>
 </div>
 <div id="appendix" class="section level1 unnumbered">
 <h1 class="unnumbered">Appendix</h1>
