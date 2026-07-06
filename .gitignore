@@ -28,3 +28,11 @@ blp_cache/
 # LaTeX build logs
 *.log
 blp_thesis_h_cache/
+
+# LaTeX aux files for the thesis template build
+thesis/*.aux
+thesis/*.log
+thesis/*.toc
+thesis/*.lof
+thesis/*.lot
+thesis/*.out

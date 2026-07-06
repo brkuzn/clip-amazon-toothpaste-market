@@ -1,0 +1,181 @@
+% ============================================================================
+% main.tex — Masterarbeit im Layout der Universität Oldenburg (MA-BA-Vorlage)
+%
+% Struktur und Optionen folgen der Vorlage da.tex (scrreprt, BCOR12mm,
+% twoside, openright, Titelseite.inc, Danksagung, Erklärung, Zusammenfassung,
+% Verzeichnisse). Anpassungen gegenüber der Original-Vorlage:
+%   - scrpage2 -> scrlayer-scrpage (scrpage2 ist in aktuellen TeX-Live-
+%     Distributionen nicht mehr enthalten; identische Kopf-/Fußzeilen)
+%   - bibgerm/geralpha + BibTeX -> formatiertes Literaturverzeichnis als
+%     Kapitel im Text (die Arbeit führt ihre Referenzen im APA-Stil)
+%   - veraltete Pakete (epsfig, ae/aecompl, subfigure) entfernt
+%   - Pakete für die aus R Markdown erzeugten Tabellen/Abbildungen ergänzt
+%     (booktabs, longtable, threeparttable, xcolor[table], float, ...)
+%   - babel: Hauptsprache Englisch (Text), Deutsch für Formalseiten
+%
+% Kompilieren AUS DEM REPO-ROOT (wegen der Abbildungspfade):
+%   pdflatex -output-directory=thesis thesis/main.tex   (2x ausführen)
+% ============================================================================
+\documentclass[a4paper,titlepage,liststotoc,final,twoside,openright,cleardoubleempty,BCOR12mm]{scrreprt}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[ngerman,english]{babel}   % Englisch = Hauptsprache des Texts
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[table]{xcolor}
+\usepackage{graphicx}
+\graphicspath{{./}{thesis/}}
+\usepackage{tabularx}
+\usepackage{rotating}
+\usepackage{lscape}
+
+% Tabellen/Abbildungen aus R Markdown (kableExtra/knitr)
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{threeparttable}
+\usepackage{caption}
+\captionsetup[table]{skip=6pt}
+\usepackage{float}
+\floatplacement{figure}{H}
+\usepackage{placeins}
+\renewcommand{\arraystretch}{1.15}
+
+% Pandoc-Hilfsmakros (vom R-Markdown-Body benötigt)
+\providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% Bilder auf Seitengröße begrenzen
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi
+}
+\makeatother
+\newcommand{\real}[1]{#1}
+
+\usepackage{hyperref}
+\hypersetup{pdftitle={Demand Estimation with Unstructured Product Data},
+            pdfauthor={Burak Uzun}, hidelinks}
+
+% Vorlage – Obere Linie, Seitenzahlen (scrlayer-scrpage statt scrpage2)
+\usepackage[automark,headsepline=.4pt]{scrlayer-scrpage}
+\pagestyle{scrheadings}
+\clearpairofpagestyles
+\automark[section]{chapter}
+\ihead{\leftmark}
+\ohead{\rightmark}
+\ofoot*{\pagemark}
+
+% Arbeitsbeschreibung
+\title{Demand Estimation with Unstructured Product Data: Evidence from Amazon's Toothpaste Market}
+\author{Burak Uzun}
+\date{\today}
+
+\begin{document}
+
+% Fuers Inhaltsvz gibts andere Seitenzahlen
+\pagenumbering{Roman}
+
+% Titelseite erstellen
+\begin{titlepage}
+ \input{thesis/Titelseite.inc}
+\end{titlepage}
+
+% Leere Seite
+\newpage
+\thispagestyle{empty}
+\quad
+
+% Danksagung & Eigenstaendigkeitserklaerung
+\newpage
+\thispagestyle{empty}
+\quad
+\begin{otherlanguage}{ngerman}
+\section*{Danksagung}
+% TODO: Danksagung einfuegen (optional)
+[Danksagung hier einf\"ugen.]
+
+\vspace{6.8cm}
+\begin{center}
+\begin{Large}
+\textbf{Erkl\"arung}
+\end{Large}
+\end{center}
+
+\noindent
+Ich erkl\"are, dass ich diese Arbeit selbstst\"andig verfasst und keine anderen als die angegebenen
+Quellen und Hilfsmittel verwendet habe.
+
+\vspace{3cm}
+\noindent
+Burak Uzun\\
+% TODO: Matrikelnummer eintragen
+Matrikelnummer [XXXXXXXX]\\
+Oldenburg, den [TT]. [Monat] 2026
+\end{otherlanguage}
+
+% Zusammenfassung erstellen (jeweils auf Englisch und Deutsch)
+\begin{abstract}
+\section*{Abstract}
+Merger simulation hinges on correctly measuring substitution patterns, yet the
+nesting structures used in practice are typically built from coarse labels such
+as brand identity. This thesis asks whether product representations extracted
+from unstructured listing content -- images and text encoded with CLIP -- define
+substitution patterns better than brand labels do. Using an ASIN-by-quarter
+panel of the Amazon US toothpaste market around Colgate-Palmolive's 2020
+acquisition of the natural-brand hello, three nested-logit demand models are
+estimated via the Berry (1994) linearisation that differ only in how nests are
+assigned: no nesting, brand nesting, and nesting by k-means clusters of CLIP
+image-and-text embeddings. CLIP-based nesting fits demand best and cuts the
+share of economically implausible negative implied marginal costs from 8.6\% to
+1.7\%. Because CLIP places hello and Colgate in different clusters, the implied
+diversion between the merging parties is small: the simulated merger price
+effect for hello falls from +1.23\% under plain logit to +0.40\% under CLIP
+nesting. The results suggest embedding-based nests are a practical, replicable
+tool for antitrust analysis when conventional product characteristics are
+unavailable.
+
+\begin{otherlanguage}{ngerman}
+\section*{Zusammenfassung}
+Fusionssimulationen h\"angen entscheidend davon ab, Substitutionsmuster korrekt
+zu messen; die in der Praxis verwendeten Nest-Strukturen beruhen jedoch meist
+auf groben Merkmalen wie der Markenzugeh\"origkeit. Diese Arbeit untersucht, ob
+Produktrepr\"asentationen aus unstrukturierten Angebotsinhalten -- mit CLIP
+kodierte Bilder und Texte -- Substitutionsmuster besser abbilden als
+Markenlabels. Auf Basis eines ASIN-Quartals-Panels des US-amerikanischen
+Amazon-Zahnpastamarktes rund um die \"Ubernahme der Naturkosmetikmarke hello
+durch Colgate-Palmolive im Jahr 2020 werden drei Nested-Logit-Nachfragemodelle
+mittels der Berry-(1994)-Linearisierung gesch\"atzt, die sich ausschlie{\ss}lich
+in der Nest-Zuordnung unterscheiden: ohne Nester, Marken-Nester und Nester aus
+k-Means-Clustern der CLIP-Einbettungen. Die CLIP-basierte Nest-Struktur weist
+die beste Anpassung auf und senkt den Anteil \"okonomisch unplausibler negativer
+implizierter Grenzkosten von 8{,}6\,\% auf 1{,}7\,\%. Da CLIP hello und Colgate
+unterschiedlichen Clustern zuordnet, ist die implizierte Diversion zwischen den
+Fusionsparteien gering: Der simulierte Preiseffekt der Fusion f\"ur hello sinkt
+von +1{,}23\,\% (einfaches Logit) auf +0{,}40\,\% (CLIP-Nester). Die Ergebnisse
+legen nahe, dass einbettungsbasierte Nester ein praktikables, reproduzierbares
+Instrument der Wettbewerbsanalyse sind, wenn klassische Produkteigenschaften
+nicht verf\"ugbar sind.
+\end{otherlanguage}
+\end{abstract}
+
+% Inhaltsverzeichnis erstellen
+\tableofcontents
+% Abbildungsverzeichnis
+\listoffigures
+% Tabellenverzeichnis
+\listoftables
+
+\cleardoublepage
+\pagenumbering{arabic} % Seitenzahlen umstellen
+
+% ---- Inhalt (aus blp_thesis.Rmd generiert; nicht von Hand editieren) ----
+\input{thesis/body.tex}
+
+\end{document}
