@@ -230,6 +230,57 @@ Each product $j$ is represented by its listing image and the concatenation of it
 $$\mathbf{e}^{I}_{j} = \frac{f_I(\text{image}_j)}{\lVert f_I(\text{image}_j) \rVert}, \qquad
 \mathbf{e}^{T}_{j} = \frac{f_T(\text{text}_j)}{\lVert f_T(\text{text}_j) \rVert}.$$
 
+CLIP's usefulness for this application comes from how it was trained. The model consists of two separate networks: a text Transformer, and -- in the variant used here -- the ViT-B/32 Vision Transformer, which cuts each image into 32 x 32-pixel patches and processes the patch sequence the way a language model processes tokens (Radford et al. 2021, sec. 2.4; Dosovitskiy et al. 2021). Both networks project into the same 512-dimensional space, and training proceeds contrastively on 400 million (image, caption) pairs collected from the web: within each training batch of $N$ pairs, the model is rewarded for maximising the cosine similarity of the $N$ correct image--caption pairings while minimising the similarity of all mismatched pairings (Radford et al. 2021, sec. 2; their Figure 1 summarises the scheme). Figure 1 sketches this objective and its role in the empirical pipeline.
+
+Two properties of the contrastive objective matter here. First, because web captions describe products in ordinary marketing language ("charcoal whitening toothpaste", "fluoride-free kids toothpaste"), the learned space encodes exactly the attribute vocabulary that differentiates consumer goods, with no category-specific training required. Second, because images and text are embedded in one shared space, the two modalities can be combined into a single product representation -- which is what the joint PCA below exploits.
+
+```{r fig_clip_scheme, fig.cap="How CLIP embeddings are produced and used. Left: the contrastive training objective (after Radford et al. 2021, their Figure 1). An image encoder and a text encoder map a batch of image-caption pairs into a shared space; training pushes the correct pairings (dark diagonal cells) toward high cosine similarity and all mismatched pairings (light cells) apart. Right: the empirical pipeline of this paper, from raw listing content to the nests of model M3.", fig.width=7.6, fig.height=3.8}
+library(grid)
+grid.newpage()
+# left panel: contrastive similarity matrix
+pushViewport(viewport(x = 0.02, width = 0.44, just = "left"))
+n <- 5; cell <- 0.095; x0 <- 0.34; y0 <- 0.76
+grid.text("CLIP contrastive objective", x = 0.5, y = 0.95,
+          gp = gpar(fontface = "bold", cex = 0.8))
+for (r in 1:n) for (co in 1:n)
+  grid.rect(x = x0 + (co-1)*cell, y = y0 - (r-1)*cell,
+            width = cell*0.92, height = cell*0.92,
+            gp = gpar(fill = ifelse(r == co, "#2563eb", "grey88"), col = "white"))
+for (co in 1:n) grid.text(bquote(T[.(co)]), x = x0 + (co-1)*cell,
+                          y = y0 + cell*0.85, gp = gpar(cex = 0.62))
+for (r in 1:n) grid.text(bquote(I[.(r)]), x = x0 - cell*0.95,
+                         y = y0 - (r-1)*cell, gp = gpar(cex = 0.62))
+grid.text("text encoder", x = x0 + 2*cell, y = y0 + cell*1.75,
+          gp = gpar(cex = 0.62, col = "grey35"))
+grid.text("image\nencoder", x = x0 - cell*2.6, y = y0 - 2*cell,
+          gp = gpar(cex = 0.62, col = "grey35"))
+grid.text("maximise diagonal similarity,\nminimise off-diagonal",
+          x = 0.52, y = y0 - (n + 0.6)*cell, gp = gpar(cex = 0.62, col = "grey35"))
+popViewport()
+# right panel: pipeline
+pushViewport(viewport(x = 0.98, width = 0.50, just = "right"))
+boxf <- function(y, lab, fill) {
+  grid.roundrect(x = 0.5, y = y, width = 0.92, height = 0.105, r = unit(2, "mm"),
+                 gp = gpar(fill = fill, col = "grey40"))
+  grid.text(lab, x = 0.5, y = y, gp = gpar(cex = 0.6))
+}
+ys   <- seq(0.93, 0.07, length.out = 7)
+labs <- c("listing image + title/benefit text",
+          "CLIP encoders (ViT-B/32 image, Transformer text)",
+          "two 512-d embeddings, L2-normalised",
+          "modality PCAs: 5 image + 5 text components",
+          "z-score + joint PCA: 5 joint components",
+          "k-means, K = 5: CLIP clusters",
+          "nests of the nested-logit demand model (M3)")
+fills <- c("grey95", "#dbeafe", "#dbeafe", "grey95", "grey95", "#dcfce7", "#dcfce7")
+for (i in seq_along(ys)) boxf(ys[i], labs[i], fills[i])
+for (i in 1:(length(ys)-1))
+  grid.lines(x = c(0.5, 0.5), y = c(ys[i] - 0.053, ys[i+1] + 0.053),
+             arrow = arrow(length = unit(1.6, "mm"), type = "closed"),
+             gp = gpar(col = "grey40", fill = "grey40"))
+popViewport()
+```
+
 Each modality's embeddings are first reduced to five modality-specific principal components (Hotelling 1933), with each PCA fitted only on the products holding a valid embedding for that modality. This yields a ten-dimensional characteristics vector per product, $\mathbf{x}_j = (x^{I}_{j1},\dots,x^{I}_{j5},\,x^{T}_{j1},\dots,x^{T}_{j5})$.
 
 Because these ten columns come from two separate PCA fits, their scales are not comparable: within each modality the first component mechanically carries the largest variance, and the image and text blocks have different overall variance levels. The joint PCA is therefore computed on the correlation scale. Each column $k$ is z-scored using its mean $\mu_k$ and standard deviation $\sigma_k$ over the $N = 155$ products with both modalities,
@@ -242,7 +293,7 @@ A useful diagnostic for whether the joint space actually blends the two modaliti
 
 $$\text{share}^{I}_{m} = \frac{\sum_{k \in I} w_{km}^2}{\sum_{k} w_{km}^2}, \qquad m = 1, \dots, 5.$$
 
-As Figure 1 shows, every retained joint component draws between 48.6% and 51.4% of its loading mass from each modality -- the joint space is genuinely multimodal rather than a relabelled image space or text space.
+As Figure 2 shows, every retained joint component draws between 48.6% and 51.4% of its loading mass from each modality -- the joint space is genuinely multimodal rather than a relabelled image space or text space.
 
 Finally, nests are formed by k-means clustering (Lloyd 1982) on the five joint components: each product is assigned to one of $K = 5$ clusters,
 
@@ -409,7 +460,7 @@ kbl(vocab_tab,
 
 \vspace{1em}
 
-Figure 2 visualises the CLIP product space: hello's listings sit in the natural/specialty cluster on the left of the embedding plane while Colgate's cluster occupies the opposite region, making the low implied diversion between the merging parties directly visible.
+Figure 3 visualises the CLIP product space: hello's listings sit in the natural/specialty cluster on the left of the embedding plane while Colgate's cluster occupies the opposite region, making the low implied diversion between the merging parties directly visible.
 
 ```{r figure1, fig.cap="Product space from CLIP embeddings. Each point is one ASIN positioned by its first two principal components of the joint image+text embedding. Cluster centroids are labelled C1--C5. hello (red diamonds, C5) and Colgate (dark blue triangles, C2) occupy different clusters, implying a lower diversion ratio and a smaller predicted merger effect under CLIP nesting relative to plain logit.", fig.width=6.5, fig.height=4.8}
 
@@ -499,7 +550,7 @@ All three models are estimated via the Berry (1994) nested-logit linearisation:
 
 $$\log\frac{s_{jt}}{s_{0t}} - \rho\,\log s_{j|g,t} = \alpha\,p_{jt} + \boldsymbol{\beta}'\mathbf{x}_{jt} + \text{FE}_t + \xi_{jt}$$
 
-where $s_{j|g,t} = s_{jt}/\!\sum_{k\in g}s_{kt}$ is the within-nest share, $\rho\in[0,1)$ is the nesting intensity, and $\text{FE}_t$ are quarter fixed effects (absorbed by within-quarter demeaning). The underlying choice model is the generalised-extreme-value family of McFadden (1974, 1978), of which the nested logit is the leading closed-form member.
+where $s_{j|g,t} = s_{jt}/\!\sum_{k\in g}s_{kt}$ is the within-nest share, $\rho\in[0,1)$ is the nesting intensity, and $\text{FE}_t$ are quarter fixed effects (absorbed by within-quarter demeaning). The underlying choice model is the generalised-extreme-value family of McFadden (1974, 1978), of which the nested logit is the leading closed-form member; the error-components representation that motivates $\rho$ is due to Cardell (1997), and Train (2009, chs. 3--4) gives a textbook treatment.
 
 ## Price Coefficient Calibration
 
@@ -507,7 +558,7 @@ Valid cost-side instruments for price are unavailable in this high-frequency onl
 
 $$\alpha = \frac{\varepsilon_{\text{target}}}{\operatorname{median}(p_{jt}(1-s_{jt}))} = \frac{-2.62}{8.4502} = -0.310$$
 
-The target $\varepsilon_{\text{target}} = -2.62$ corresponds to the brand-level CPG meta-analysis mean of Bijmolt, van Heerde \& Pieters (2005), consistent with structural BLP estimates for analogous packaged-goods categories (Nevo 2001; Draganska \& Jain 2006).
+The target $\varepsilon_{\text{target}} = -2.62$ corresponds to the brand-level CPG meta-analysis mean of Bijmolt, van Heerde \& Pieters (2005, p. 141), consistent with structural BLP estimates for analogous packaged-goods categories (Nevo 2001; Draganska \& Jain 2006).
 
 **Sequential calibration note.** Since $\alpha$ is calibrated at $\rho=0$, the target elasticity $-2.62$ is the plain-logit median. At the profiled nesting parameters, the nested-logit elasticity formula amplifies own-price sensitivity by roughly $1/(1-\rho^{*})$, so the same $\alpha$ implies median own-price elasticities of $-3.83$ under M2 and $-7.31$ under M3 (computed observation by observation; the $1/(1-\rho^{*})$ back-of-envelope gives $-4.0$ and $-7.9$). These larger magnitudes are not in tension with the calibration target. The Bijmolt, van Heerde, and Pieters (2005) mean is dominated by brand- and aggregate-level estimates, whereas the products here are individual ASINs, which face much closer substitutes than a brand aggregate does -- finer product definitions mechanically imply more elastic demand. Structural estimates at the product-line level are correspondingly larger: Draganska and Jain (2006) report own-price elasticities between $-2.45$ and $-6.25$, a range that contains the calibration target and most of the nested models' implied values. Appendix C reports a robustness exercise that rescales $\alpha$ within each nested model so that the model's own implied median equals $-2.62$ at its profiled $\rho^{*}$: doing so shrinks $|\alpha|$, inflates Bertrand markups, and drives the negative-cost rate far above even the plain-logit level. In other words, ASIN-level demand must be substantially more elastic than the aggregate benchmark for observed prices to be rationalizable at all -- the cost side independently validates the more elastic implied elasticities.
 
@@ -712,7 +763,7 @@ kbl(tab_be,
 
 ## Diversion Ratios
 
-The merger question turns on where hello's demand goes when its prices rise. Table 6 reports diversion ratios $DR_{j \to k} = -(\partial s_k / \partial p_j) / (\partial s_j / \partial p_j)$ from hello ASINs, aggregated into fixed reporting buckets (share-weighted across hello products and pre-merger quarters). Diversion ratios are the central input of modern unilateral-effects screening (Farrell and Shapiro 2010; Conlon and Mortimer 2021).
+The merger question turns on where hello's demand goes when its prices rise. Table 6 reports diversion ratios $DR_{j \to k} = -(\partial s_k / \partial p_j) / (\partial s_j / \partial p_j)$ from hello ASINs, aggregated into fixed reporting buckets (share-weighted across hello products and pre-merger quarters). Diversion ratios are the central input of modern unilateral-effects screening (Farrell and Shapiro 2010; Conlon and Mortimer 2021), and they enter the U.S. Horizontal Merger Guidelines directly through the pricing-pressure analysis of differentiated products (U.S. Department of Justice and Federal Trade Commission 2010, sec. 6.1).
 
 ```{r tab_diversion}
 div_dt <- fread(file.path(out_dir, "diversion_ratios.csv"))
@@ -821,7 +872,7 @@ kbl(tab3_flat,
   )
 ```
 
-Figure 3 traces the post-merger window quarter by quarter, showing the merger Nash equilibrium diverging from the no-merger counterfactual for hello while the two paths for Colgate remain indistinguishable.
+Figure 4 traces the post-merger window quarter by quarter, showing the merger Nash equilibrium diverging from the no-merger counterfactual for hello while the two paths for Colgate remain indistinguishable.
 
 ```{r figure2, fig.cap="Merger simulation price trajectories (Model 3, CLIP-Nested, $\\rho^*=0.67$). Top panel: Nash equilibrium prices under merged and pre-merger ownership. Observed prices are omitted from the top panel because their quarter-to-quarter variation (\\$4--\\$10) would compress the counterfactual divergence. Bottom panel: merger price effect in percent, $(p^{\\text{merger}} - p^{\\text{no-merger}})/p^{\\text{no-merger}} \\times 100$. hello (red) shows a positive and time-varying effect; Colgate (blue) remains near zero.", fig.width=7, fig.height=6}
 
@@ -1025,6 +1076,8 @@ Berry, S.T., Levinsohn, J., \& Pakes, A. (1995). Automobile prices in market equ
 
 Bijmolt, T.H.A., van Heerde, H.J., \& Pieters, R.G.M. (2005). New empirical generalizations on the determinants of price elasticity. *Journal of Marketing Research*, 42(2), 141--156.
 
+Cardell, N.S. (1997). Variance components structures for the extreme-value and logistic distributions with application to models of heterogeneity. *Econometric Theory*, 13(2), 185--213.
+
 Compiani, G., Morozov, I., \& Seiler, S. (2026). Demand estimation with text and image data. *The RAND Journal of Economics*. https://doi.org/10.1111/1756-2171.70052
 
 Conlon, C., \& Gortmaker, J. (2020). Best practices for differentiated products demand estimation with PyBLP. *RAND Journal of Economics*, 51(4), 1108--1161.
@@ -1066,6 +1119,10 @@ Radford, A., Kim, J.W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S., \ldots \&
 Rousseeuw, P.J. (1987). Silhouettes: A graphical aid to the interpretation and validation of cluster analysis. *Journal of Computational and Applied Mathematics*, 20, 53--65.
 
 Small, K.A., \& Rosen, H.S. (1981). Applied welfare economics with discrete choice models. *Econometrica*, 49(1), 105--130.
+
+Train, K.E. (2009). *Discrete Choice Methods with Simulation* (2nd ed.). Cambridge University Press.
+
+U.S. Department of Justice \& Federal Trade Commission (2010). *Horizontal Merger Guidelines*. Washington, DC. Issued August 19, 2010.
 
 Werden, G.J., \& Froeb, L.M. (1994). The effects of mergers in differentiated products industries: Logit demand and merger policy. *Journal of Law, Economics, \& Organization*, 10(2), 407--426.
 
