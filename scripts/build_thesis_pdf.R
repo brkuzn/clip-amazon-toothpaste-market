@@ -22,7 +22,7 @@ if (!nzchar(Sys.getenv("RSTUDIO_PANDOC")) && !nzchar(Sys.which("pandoc"))) {
   if (dir.exists(p)) Sys.setenv(RSTUDIO_PANDOC = p)
 }
 
-fmt <- rmarkdown::pdf_document(
+fmt <- bookdown::pdf_document2(
   latex_engine    = "pdflatex",
   template        = "thesis/template.tex",
   number_sections = TRUE,

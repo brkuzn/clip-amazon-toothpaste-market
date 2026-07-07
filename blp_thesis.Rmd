@@ -10,7 +10,7 @@ abstract: |
 
   **JEL codes:** C55, D12, L13, L41, L81.
 output:
-  html_document:
+  bookdown::html_document2:
     includes:
       before_body: thesis/html_front.html
     number_sections: true
@@ -20,7 +20,7 @@ output:
     highlight: tango
     fig_caption: true
     df_print: kable
-  pdf_document:
+  bookdown::pdf_document2:
     latex_engine: pdflatex
     number_sections: true
     toc: false
@@ -176,9 +176,9 @@ The estimation sample is built in three steps, each dictated by a practical cons
 
 Market shares are constructed from revealed-preference purchase counts. Market size $M_t$ is set to $(1 + \lambda) \cdot \sum_j q_{jt}$ with $\lambda = 13.93$, implying an outside-good share of approximately 93%.
 
-Separately from these sample filters, the joint embedding space of Section 3.4 is *fitted* on the 155 of 167 ASINs that hold both a valid image and a valid text embedding; the 12 ASINs with text-only embeddings are projected into that space and remain in the estimation sample throughout. Table 1 reports summary statistics for the estimation panel.
+Separately from these sample filters, the joint embedding space of Section 3.4 is *fitted* on the 155 of 167 ASINs that hold both a valid image and a valid text embedding; the 12 ASINs with text-only embeddings are projected into that space and remain in the estimation sample throughout. Table \@ref(tab:tab-panel-summary) reports summary statistics for the estimation panel.
 
-```{r tab_panel_summary}
+```{r tab-panel-summary}
 pp <- fread(file.path(data_dir, "asin_quarter_panel.csv"))
 pp[, qd := as.Date(paste0(sub("Q.*", "", quarter), "-",
        sprintf("%02d", (as.integer(sub(".*Q", "", quarter)) - 1) * 3 + 1), "-01"))]
@@ -232,11 +232,11 @@ Each product $j$ is represented by its listing image and the concatenation of it
 $$\mathbf{e}^{I}_{j} = \frac{f_I(\text{image}_j)}{\lVert f_I(\text{image}_j) \rVert}, \qquad
 \mathbf{e}^{T}_{j} = \frac{f_T(\text{text}_j)}{\lVert f_T(\text{text}_j) \rVert}.$$
 
-CLIP's usefulness for this application comes from how it was trained. The model consists of two separate networks: a text Transformer, and -- in the variant used here -- the ViT-B/32 Vision Transformer, which cuts each image into 32 x 32-pixel patches and processes the patch sequence the way a language model processes tokens (Radford et al. 2021, sec. 2.4; Dosovitskiy et al. 2021). Both networks project into the same 512-dimensional space, and training proceeds contrastively on 400 million (image, caption) pairs collected from the web: within each training batch of $N$ pairs, the model is rewarded for maximising the cosine similarity of the $N$ correct image--caption pairings while minimising the similarity of all mismatched pairings (Radford et al. 2021, sec. 2; their Figure 1 summarises the scheme). Figure 1 sketches this objective and its role in the empirical pipeline.
+CLIP's usefulness for this application comes from how it was trained. The model consists of two separate networks: a text Transformer, and -- in the variant used here -- the ViT-B/32 Vision Transformer, which cuts each image into 32 x 32-pixel patches and processes the patch sequence the way a language model processes tokens (Radford et al. 2021, sec. 2.4; Dosovitskiy et al. 2021). Both networks project into the same 512-dimensional space, and training proceeds contrastively on 400 million (image, caption) pairs collected from the web: within each training batch of $N$ pairs, the model is rewarded for maximising the cosine similarity of the $N$ correct image--caption pairings while minimising the similarity of all mismatched pairings (Radford et al. 2021, sec. 2; their Figure 1 summarises the scheme). Figure \@ref(fig:clip-scheme) sketches this objective and its role in the empirical pipeline.
 
 Two properties of the contrastive objective matter here. First, because web captions describe products in ordinary marketing language ("charcoal whitening toothpaste", "fluoride-free kids toothpaste"), the learned space encodes exactly the attribute vocabulary that differentiates consumer goods, with no category-specific training required. Second, because images and text are embedded in one shared space, the two modalities can be combined into a single product representation -- which is what the joint PCA below exploits.
 
-```{r fig_clip_scheme, fig.cap="How CLIP embeddings are produced and used. Left: the contrastive training objective (after Radford et al. 2021, their Figure 1). An image encoder and a text encoder map a batch of image-caption pairs into a shared space; training pushes the correct pairings (dark diagonal cells) toward high cosine similarity and all mismatched pairings (light cells) apart. Right: the empirical pipeline of this paper, from raw listing content to the nests of model M3.", fig.width=7.6, fig.height=3.8}
+```{r clip-scheme, fig.cap="How CLIP embeddings are produced and used. Left: the contrastive training objective (after Radford et al. 2021, their Figure 1). An image encoder and a text encoder map a batch of image-caption pairs into a shared space; training pushes the correct pairings (dark diagonal cells) toward high cosine similarity and all mismatched pairings (light cells) apart. Right: the empirical pipeline of this paper, from raw listing content to the nests of model M3.", fig.width=7.6, fig.height=3.8}
 library(grid)
 grid.newpage()
 # left panel: contrastive similarity matrix
@@ -295,7 +295,7 @@ A useful diagnostic for whether the joint space actually blends the two modaliti
 
 $$\text{share}^{I}_{m} = \frac{\sum_{k \in I} w_{km}^2}{\sum_{k} w_{km}^2}, \qquad m = 1, \dots, 5.$$
 
-As Figure 2 shows, every retained joint component draws between 48.6% and 51.4% of its loading mass from each modality -- the joint space is genuinely multimodal rather than a relabelled image space or text space.
+As Figure \@ref(fig:pca-anatomy) shows, every retained joint component draws between 48.6% and 51.4% of its loading mass from each modality -- the joint space is genuinely multimodal rather than a relabelled image space or text space.
 
 Finally, nests are formed by k-means clustering (Lloyd 1982) on the five joint components: each product is assigned to one of $K = 5$ clusters,
 
@@ -303,7 +303,7 @@ $$g_j = \arg\min_{g \in \{1,\dots,K\}} \lVert \mathbf{pc}_j - \mathbf{c}_g \rVer
 
 with centroids $\mathbf{c}_g$ from 50 random restarts (seed 42), and cluster membership is the nest assignment in M3. The five clusters explain 71.2% of joint-PC variance. Appendix A reports cluster-quality diagnostics -- within-cluster sum of squares and average silhouette width (Rousseeuw 1987) -- together with all downstream results for $K = 2, \dots, 10$.
 
-```{r fig_pca, fig.cap="Anatomy of the joint embedding space. Left: variance explained by each joint principal component of the standardised ten-column input (five image PCs and five text PCs), fitted on the 155 ASINs with both modalities; the first five components (blue) are retained. Right: modality composition of each retained component, measured as the share of squared rotation loadings attributable to image versus text inputs. The dashed line marks an even 50/50 split; every component lies within 1.4 percentage points of it, confirming the joint space blends both modalities rather than being dominated by either.", fig.width=7, fig.height=3.4}
+```{r pca-anatomy, fig.cap="Anatomy of the joint embedding space. Left: variance explained by each joint principal component of the standardised ten-column input (five image PCs and five text PCs), fitted on the 155 ASINs with both modalities; the first five components (blue) are retained. Right: modality composition of each retained component, measured as the share of squared rotation loadings attributable to image versus text inputs. The dashed line marks an even 50/50 split; every component lies within 1.4 percentage points of it, confirming the joint space blends both modalities rather than being dominated by either.", fig.width=7, fig.height=3.4}
 feat10 <- fread(file.path(repo_dir, "scripts/CLIP-Embeddings/asin_features_for_blp_clip.csv"))
 img_cols10  <- paste0("asin_img_pc", 1:5)
 text_cols10 <- paste0("asin_text_pc", 1:5)
@@ -354,9 +354,9 @@ Twelve ASINs lack an image embedding (image retrieval failed at extraction time)
 
 ## The Estimated Product Space
 
-Table 2 reports summary statistics by CLIP cluster. The clusters recover economically meaningful segments without using any sales or price information: a premium sensitivity segment (C1, dominated by the GSK brands), the two mainstream incumbents in their own clusters (C2 Colgate, C3 Crest), Tom's of Maine (C4), and a natural/specialty segment (C5) containing hello. Price levels and package sizes differ sharply across clusters, consistent with the clusters capturing vertical and horizontal differentiation simultaneously.
+Table \@ref(tab:cluster-summary) reports summary statistics by CLIP cluster. The clusters recover economically meaningful segments without using any sales or price information: a premium sensitivity segment (C1, dominated by the GSK brands), the two mainstream incumbents in their own clusters (C2 Colgate, C3 Crest), Tom's of Maine (C4), and a natural/specialty segment (C5) containing hello. Price levels and package sizes differ sharply across clusters, consistent with the clusters capturing vertical and horizontal differentiation simultaneously.
 
-```{r table1}
+```{r cluster-summary}
 if (is_pdf) {
   col_names_t1 <- c("Cluster","Dom. Brand","$N$ ASINs",
                     "$\\bar{p}$","$\\tilde{p}$","$\\sigma_p$",
@@ -405,9 +405,9 @@ kbl(t1,
 
 \vspace{1em}
 
-Beyond price and share statistics, the clusters are directly interpretable from the listing content itself. Table 3 reports, for each cluster, the listing-vocabulary terms that are most over-represented relative to the whole category (by lift: the share of the cluster's ASINs whose title or benefit text contains the term, divided by the category-wide share). The vocabulary confirms that the clusters track economically meaningful positioning rather than arbitrary embedding geometry.
+Beyond price and share statistics, the clusters are directly interpretable from the listing content itself. Table \@ref(tab:tab-vocab) reports, for each cluster, the listing-vocabulary terms that are most over-represented relative to the whole category (by lift: the share of the cluster's ASINs whose title or benefit text contains the term, divided by the category-wide share). The vocabulary confirms that the clusters track economically meaningful positioning rather than arbitrary embedding geometry.
 
-```{r tab_vocab}
+```{r tab-vocab}
 titles_v <- fread(file.path(repo_dir, "scripts/CLIP-Embeddings/asin_titles.csv"))
 pcs_v    <- fread(file.path(data_dir, "asin_joint_pcs_complete.csv"))
 pcs_v    <- pcs_v[asin %in% unique(pp$asin)]
@@ -462,9 +462,9 @@ kbl(vocab_tab,
 
 \vspace{1em}
 
-Figure 3 visualises the CLIP product space: hello's listings sit in the natural/specialty cluster on the left of the embedding plane while Colgate's cluster occupies the opposite region, making the low implied diversion between the merging parties directly visible.
+Figure \@ref(fig:clip-space) visualises the CLIP product space: hello's listings sit in the natural/specialty cluster on the left of the embedding plane while Colgate's cluster occupies the opposite region, making the low implied diversion between the merging parties directly visible.
 
-```{r figure1, fig.cap="Product space from CLIP embeddings. Each point is one ASIN positioned by its first two principal components of the joint image+text embedding. Cluster centroids are labelled C1--C5. hello (red diamonds, C5) and Colgate (dark blue triangles, C2) occupy different clusters, implying a lower diversion ratio and a smaller predicted merger effect under CLIP nesting relative to plain logit.", fig.width=6.5, fig.height=4.8}
+```{r clip-space, fig.cap="Product space from CLIP embeddings. Each point is one ASIN positioned by its first two principal components of the joint image+text embedding. Cluster centroids are labelled C1--C5. hello (red diamonds, C5) and Colgate (dark blue triangles, C2) occupy different clusters, implying a lower diversion ratio and a smaller predicted merger effect under CLIP nesting relative to plain logit.", fig.width=6.5, fig.height=4.8}
 
 # ── rebuild figure 1 inline ──────────────────────────────────────────────────
 LAMBDA        <- 13.93
@@ -598,9 +598,9 @@ with $\lambda = 0.4$, convergence tolerance $10^{-8}$, and up to 2,000 iteration
 
 ## Demand Estimates
 
-Table 4 presents the demand parameters for all three models, separating the calibrated $\alpha$ from the estimated $\boldsymbol{\beta}$ and the profiled $\rho^{*}$. Brand nesting yields $\rho^{*}=0.35$ with a 3.1% RSS improvement over plain logit; CLIP nesting yields $\rho^{*}=0.67$ with an 8.1% improvement. The stronger profiled nesting parameter indicates that within-cluster substitution is substantially more intense when clusters are defined in embedding space than when they are defined by brand identity.
+Table \@ref(tab:demand-estimates) presents the demand parameters for all three models, separating the calibrated $\alpha$ from the estimated $\boldsymbol{\beta}$ and the profiled $\rho^{*}$. Brand nesting yields $\rho^{*}=0.35$ with a 3.1% RSS improvement over plain logit; CLIP nesting yields $\rho^{*}=0.67$ with an 8.1% improvement. The stronger profiled nesting parameter indicates that within-cluster substitution is substantially more intense when clusters are defined in embedding space than when they are defined by brand identity.
 
-```{r table2}
+```{r demand-estimates}
 if (is_pdf) {
   var_labels <- c(
     "prices_alpha"         = "$\\alpha$ (price)",
@@ -713,9 +713,9 @@ kbl(tab2,
 
 ## Own-Price Elasticities by Brand
 
-Table 5 reports median own-price elasticities by brand group for each model. Two patterns are worth noting. First, within each model, elasticities scale with price levels -- the nested-logit own-price elasticity is proportional to $\alpha p_j$, so premium brands such as APAGARD and SENSODYNE PRONAMEL are mechanically the most elastic. Second, and more informative, moving from M1 to M3 amplifies all elasticities by roughly $1/(1-\rho^{*})$, but the amplification interacts with cluster composition: brands sharing a crowded embedding cluster face the strongest within-nest competition. The merging parties illustrate the point -- hello's median elasticity rises from $-1.42$ under plain logit to $-4.05$ under CLIP nesting, reflecting the intense substitution among the natural/specialty products in its cluster rather than substitution toward Colgate.
+Table \@ref(tab:brand-elas) reports median own-price elasticities by brand group for each model. Two patterns are worth noting. First, within each model, elasticities scale with price levels -- the nested-logit own-price elasticity is proportional to $\alpha p_j$, so premium brands such as APAGARD and SENSODYNE PRONAMEL are mechanically the most elastic. Second, and more informative, moving from M1 to M3 amplifies all elasticities by roughly $1/(1-\rho^{*})$, but the amplification interacts with cluster composition: brands sharing a crowded embedding cluster face the strongest within-nest competition. The merging parties illustrate the point -- hello's median elasticity rises from $-1.42$ under plain logit to $-4.05$ under CLIP nesting, reflecting the intense substitution among the natural/specialty products in its cluster rather than substitution toward Colgate.
 
-```{r table_brand_elas}
+```{r brand-elas}
 be <- rbindlist(list(
   asin1[, .(model = "M1", brand = brand_grouped_50, elas = elas_own)],
   asin2[, .(model = "M2", brand = brand_grouped_50, elas = elas_own)],
@@ -765,9 +765,9 @@ kbl(tab_be,
 
 ## Diversion Ratios
 
-The merger question turns on where hello's demand goes when its prices rise. Table 6 reports diversion ratios $DR_{j \to k} = -(\partial s_k / \partial p_j) / (\partial s_j / \partial p_j)$ from hello ASINs, aggregated into fixed reporting buckets (share-weighted across hello products and pre-merger quarters). Diversion ratios are the central input of modern unilateral-effects screening (Farrell and Shapiro 2010; Conlon and Mortimer 2021), and they enter the U.S. Horizontal Merger Guidelines directly through the pricing-pressure analysis of differentiated products (U.S. Department of Justice and Federal Trade Commission 2010, sec. 6.1).
+The merger question turns on where hello's demand goes when its prices rise. Table \@ref(tab:tab-diversion) reports diversion ratios $DR_{j \to k} = -(\partial s_k / \partial p_j) / (\partial s_j / \partial p_j)$ from hello ASINs, aggregated into fixed reporting buckets (share-weighted across hello products and pre-merger quarters). Diversion ratios are the central input of modern unilateral-effects screening (Farrell and Shapiro 2010; Conlon and Mortimer 2021), and they enter the U.S. Horizontal Merger Guidelines directly through the pricing-pressure analysis of differentiated products (U.S. Department of Justice and Federal Trade Commission 2010, sec. 6.1).
 
-```{r tab_diversion}
+```{r tab-diversion}
 div_dt <- fread(file.path(out_dir, "diversion_ratios.csv"))
 kbl(div_dt,
     col.names = c("Model", "To Colgate", "To rest of hello's CLIP cluster",
@@ -796,9 +796,9 @@ The three demand systems tell three different stories about the same market. Und
 
 ## Merger Counterfactuals
 
-Table 7 reports the merger counterfactuals: observed prices, recovered marginal costs, the no-merger Nash equilibrium, the merger Nash equilibrium, and the implied price effect $\Delta p$ for the merging parties and the largest rivals. Under plain logit, where diversion is proportional to market shares, the simulated effect for hello is +1.23%; brand nesting barely changes it (+1.28%) because hello's ASINs sit in their own brand nest and diversion to Colgate is still share-proportional across nests. Under CLIP nesting, hello (cluster C5) and Colgate (cluster C2) are distant in product space, diversion between the parties is small, and the simulated hello effect falls to +0.40%, with Colgate's own effect economically negligible.
+Table \@ref(tab:merger-cf) reports the merger counterfactuals: observed prices, recovered marginal costs, the no-merger Nash equilibrium, the merger Nash equilibrium, and the implied price effect $\Delta p$ for the merging parties and the largest rivals. Under plain logit, where diversion is proportional to market shares, the simulated effect for hello is +1.23%; brand nesting barely changes it (+1.28%) because hello's ASINs sit in their own brand nest and diversion to Colgate is still share-proportional across nests. Under CLIP nesting, hello (cluster C5) and Colgate (cluster C2) are distant in product space, diversion between the parties is small, and the simulated hello effect falls to +0.40%, with Colgate's own effect economically negligible.
 
-```{r table3}
+```{r merger-cf}
 focus   <- c("hello","Colgate","Tom's of Maine","Crest","Sensodyne")
 models  <- c("Logit","Brand-Nested","CLIP-Nested")
 n_focus <- length(focus)
@@ -874,9 +874,9 @@ kbl(tab3_flat,
   )
 ```
 
-Figure 4 traces the post-merger window quarter by quarter, showing the merger Nash equilibrium diverging from the no-merger counterfactual for hello while the two paths for Colgate remain indistinguishable.
+Figure \@ref(fig:trajectories) traces the post-merger window quarter by quarter, showing the merger Nash equilibrium diverging from the no-merger counterfactual for hello while the two paths for Colgate remain indistinguishable.
 
-```{r figure2, fig.cap="Merger simulation price trajectories (Model 3, CLIP-Nested, $\\rho^*=0.67$). Top panel: Nash equilibrium prices under merged and pre-merger ownership. Observed prices are omitted from the top panel because their quarter-to-quarter variation (\\$4--\\$10) would compress the counterfactual divergence. Bottom panel: merger price effect in percent, $(p^{\\text{merger}} - p^{\\text{no-merger}})/p^{\\text{no-merger}} \\times 100$. hello (red) shows a positive and time-varying effect; Colgate (blue) remains near zero.", fig.width=7, fig.height=6}
+```{r trajectories, fig.cap="Merger simulation price trajectories (Model 3, CLIP-Nested, $\\rho^*=0.67$). Top panel: Nash equilibrium prices under merged and pre-merger ownership. Observed prices are omitted from the top panel because their quarter-to-quarter variation (\\$4--\\$10) would compress the counterfactual divergence. Bottom panel: merger price effect in percent, $(p^{\\text{merger}} - p^{\\text{no-merger}})/p^{\\text{no-merger}} \\times 100$. hello (red) shows a positive and time-varying effect; Colgate (blue) remains near zero.", fig.width=7, fig.height=6}
 
 m3       <- fread(file.path(out_dir, "model3_asin_results.csv"))
 panel_m3 <- merge(panel, m3[,.(asin, quarter, price_nomerger, price_merger)],
@@ -958,7 +958,7 @@ p_levels / p_effect + plot_layout(heights=c(2,1))
 
 The central economic-plausibility comparison across the three models is summarised below. The share of observations with **negative implied marginal costs** is the key diagnostic: when the demand system understates substitutability, the Bertrand inversion attributes implausibly large markups, pushing recovered costs below zero. CLIP-based nesting reduces the negative-MC rate from 8.6% to 1.7% — a five-fold improvement — while simultaneously delivering the largest RSS improvement. That M1 and M2 display *exactly* the same negative-cost rate, cost levels, and Lerner indices is not a coincidence: because brand nests coincide with ownership boundaries, brand-nested Bertrand markups are identical to plain-logit markups for any $\rho$ (Section 4.4 and Appendix D). The cost side of the model can only improve when nests cut across firms, which is precisely what CLIP clustering delivers. The final column translates the price effects into consumer terms via the nested-logit inclusive-value formula (Small and Rosen 1981); implied consumer harm under CLIP nesting is roughly a third of the logit-implied harm.
 
-```{r table4}
+```{r cross-model}
 pct4 <- if (is_pdf) "\\%" else "%"
 
 mods4 <- list(
@@ -967,7 +967,7 @@ mods4 <- list(
   list(lab = "M3: CLIP-Nested",  coef = coef3, res = asin3, mname = "CLIP-Nested")
 )
 wf4 <- fread(file.path(out_dir, "welfare_effects.csv"))
-# RSS drop vs rho=0 from the concentrated OLS profile (see Table 4)
+# RSS drop vs rho=0 from the concentrated OLS profile (see demand-estimates table)
 rss_drop4 <- c(NA, 3.1, 8.1)
 
 tab4 <- rbindlist(lapply(seq_along(mods4), function(i) {
@@ -1134,7 +1134,7 @@ Werden, G.J., \& Froeb, L.M. (1994). The effects of mergers in differentiated pr
 
 ## Appendix A: K Sensitivity Analysis {-}
 
-```{r appendix_k_sensitivity}
+```{r appendix-ksens}
 # For PDF/LaTeX: % is a comment char → must escape as \%
 pct_sym <- if (is_pdf) "\\%" else "%"
 k_tbl <- ksens_dt[, .(
@@ -1181,7 +1181,7 @@ kbl(k_tbl,
 
 ## Appendix B: Model Fit --- RMSE and MAE {-}
 
-```{r appendix_rmse}
+```{r appendix-rmse}
 model_order <- c("Logit","Brand-Nested","CLIP-Nested")
 model_lab   <- c("Logit"="M1: Logit","Brand-Nested"="M2: Brand-Nested","CLIP-Nested"="M3: CLIP-Nested")
 brand_order <- c("All","hello","Colgate")
@@ -1232,7 +1232,7 @@ kbl(rmse_clean,
 
 ## Appendix C: Robustness Checks {-}
 
-```{r appendix_robustness}
+```{r appendix-robustness}
 rob_dt <- fread(file.path(out_dir, "robustness_checks.csv"))
 pctR <- if (is_pdf) "\\%" else "%"
 rob_tab <- rob_dt[, .(

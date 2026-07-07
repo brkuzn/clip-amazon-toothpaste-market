@@ -16,7 +16,10 @@
 %
 % Bauen: Rscript scripts/build_thesis_pdf.R   (aus dem Repo-Root)
 % ============================================================================
-\documentclass[a4paper,titlepage,liststotoc,final,twoside,openright,cleardoubleempty,BCOR12mm]{scrreprt}
+% Fuer die GEDRUCKTE/gebundene Fassung: twoside,openright,cleardoubleempty
+% statt oneside,openany einsetzen (dann beginnen Kapitel auf rechten Seiten
+% und Leerseiten werden eingefuegt).
+\documentclass[a4paper,titlepage,liststotoc,final,oneside,openany,BCOR12mm]{scrreprt}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -59,6 +62,14 @@
 \makeatother
 \newcommand{\real}[1]{#1}
 
+% Abbildungen automatisch auf Satzspiegelbreite begrenzen (wie im
+% Pandoc-Standardtemplate; verhindert ueberlaufende Grafiken)
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+
 \usepackage{hyperref}
 \hypersetup{pdftitle={Demand Estimation with Unstructured Product Data},
             pdfauthor={Burak Uzun}, hidelinks}
@@ -68,8 +79,7 @@
 \pagestyle{scrheadings}
 \clearpairofpagestyles
 \automark[section]{chapter}
-\ihead{\leftmark}
-\ohead{\rightmark}
+\ohead{\headmark}   % ein Kolumnentitel pro Seite -- keine Ueberlappung
 \ofoot*{\pagemark}
 
 % Arbeitsbeschreibung
