@@ -1,5 +1,6 @@
 % ============================================================================
-% main.tex — Masterarbeit im Layout der Universität Oldenburg (MA-BA-Vorlage)
+% template.tex — Pandoc-Template: Masterarbeit im Layout der Uni Oldenburg
+% Wird von scripts/build_thesis_pdf.R direkt auf blp_thesis.Rmd angewendet.
 %
 % Struktur und Optionen folgen der Vorlage da.tex (scrreprt, BCOR12mm,
 % twoside, openright, Titelseite.inc, Danksagung, Erklärung, Zusammenfassung,
@@ -13,8 +14,7 @@
 %     (booktabs, longtable, threeparttable, xcolor[table], float, ...)
 %   - babel: Hauptsprache Englisch (Text), Deutsch für Formalseiten
 %
-% Kompilieren AUS DEM REPO-ROOT (wegen der Abbildungspfade):
-%   pdflatex -output-directory=thesis thesis/main.tex   (2x ausführen)
+% Bauen: Rscript scripts/build_thesis_pdf.R   (aus dem Repo-Root)
 % ============================================================================
 \documentclass[a4paper,titlepage,liststotoc,final,twoside,openright,cleardoubleempty,BCOR12mm]{scrreprt}
 
@@ -172,10 +172,15 @@ nicht verf\"ugbar sind.
 % Tabellenverzeichnis
 \listoftables
 
+% Pandoc emits \frontmatter/\mainmatter with --top-level-division=chapter;
+% scrreprt kennt sie nicht -- Shims uebernehmen die Seitennummerierung.
+\providecommand{\frontmatter}{}
+\providecommand{\mainmatter}{\cleardoublepage\pagenumbering{arabic}}
+\providecommand{\backmatter}{}
 \cleardoublepage
-\pagenumbering{arabic} % Seitenzahlen umstellen
+\pagenumbering{arabic} % Seitenzahlen umstellen (falls kein \mainmatter kommt)
 
-% ---- Inhalt (aus blp_thesis.Rmd generiert; nicht von Hand editieren) ----
-\input{thesis/body.tex}
+% ---- Inhalt (von pandoc aus blp_thesis.Rmd eingesetzt) ----
+$body$
 
 \end{document}

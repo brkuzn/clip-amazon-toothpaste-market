@@ -11,6 +11,8 @@ abstract: |
   **JEL codes:** C55, D12, L13, L41, L81.
 output:
   html_document:
+    includes:
+      before_body: thesis/html_front.html
     number_sections: true
     toc: true
     toc_float: true

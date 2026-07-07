@@ -39,6 +39,7 @@ clip-amazon-toothpaste-market/
 │   ├── blp_three_models.R             # MAIN: demand estimation + merger simulation
 │   ├── clip_k_sensitivity.R           # K=2..10 sensitivity analysis
 │   ├── tables_and_figures.R           # Table 1, Figure 1, Figure 2
+│   ├── build_thesis_pdf.R             # Renders the Rmd into the Uni Oldenburg template
 │   ├── CLIP-Embeddings/               # Upstream embedding pipeline (see its README.md)
 │   │   ├── asin_master_for_embeddings.parquet   # Input: ASIN titles/benefits/image URLs
 │   │   ├── clip_asin_embedding_extraction.ipynb # CLIP extraction (Colab/GPU)
