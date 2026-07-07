@@ -4,7 +4,7 @@ subtitle: "Evidence from Amazon's Toothpaste Market"
 author: "Burak Uzun"
 date: "`r format(Sys.Date(), '%B %Y')`"
 abstract: |
-  Merger simulation hinges on correctly measuring substitution patterns, yet the nesting structures used in practice are typically built from coarse labels such as brand identity. This paper asks whether product representations extracted from unstructured listing content -- images and text encoded with CLIP (Radford et al. 2021) -- define substitution patterns better than brand labels do. Using an ASIN-by-quarter panel of the Amazon US toothpaste market around Colgate-Palmolive's 2020 acquisition of the natural-brand hello, we estimate three nested-logit demand models via the Berry (1994) linearisation that differ only in how nests are assigned: no nesting, brand nesting, and nesting by k-means clusters of CLIP image-and-text embeddings. CLIP-based nesting fits demand best and cuts the share of economically implausible negative implied marginal costs from 8.6% to 1.7%. Because CLIP places hello and Colgate in different clusters, the implied diversion between the merging parties is small: the simulated merger price effect for hello falls from +1.23% under plain logit to +0.40% under CLIP nesting. The results suggest embedding-based nests are a practical, replicable tool for antitrust analysis when conventional product characteristics are unavailable.
+  Merger simulation hinges on correctly measuring substitution patterns, yet the nesting structures used in practice are typically built from coarse labels such as brand identity. This paper asks whether product representations extracted from unstructured listing content -- images and text encoded with CLIP (Radford et al. 2021) -- define substitution patterns better than brand labels do. Using an ASIN-by-quarter panel of the Amazon US toothpaste market around Colgate-Palmolive's 2020 acquisition of the natural-brand hello, we estimate three nested-logit demand models via the Berry (1994) linearisation that differ only in how nests are assigned: no nesting, brand nesting, and nesting by k-means clusters of CLIP image-and-text embeddings. CLIP-based nesting fits demand best and cuts the share of economically implausible negative implied marginal costs from 8.6% to 1.7%. Because CLIP places hello and Colgate in different clusters, the implied diversion between the merging parties is small: the simulated merger price effect for hello falls from +1.23% under plain logit to +0.40% under CLIP nesting. Placebo tests confirm that any cross-firm nesting can repair the cost side. What is distinctive to CLIP is that it also fits demand better than 97.5% of random partitions and yields a merger counterfactual free of the spurious diversion those partitions introduce. The results suggest embedding-based nests are a practical, replicable tool for antitrust analysis when conventional product characteristics are unavailable.
 
   **Keywords:** demand estimation; unstructured data; CLIP embeddings; nested logit; merger simulation; antitrust.
 
@@ -85,7 +85,7 @@ library(cluster)   # needed by clip_k_sensitivity.R
 setwd(repo_dir)
 ```
 
-```{r computation, include=FALSE, cache=TRUE, cache.extra=tools::md5sum(file.path(script_dir, c("blp_three_models.R","tables_and_figures.R","clip_k_sensitivity.R","robustness_checks.R")))}
+```{r computation, include=FALSE, cache=TRUE, cache.extra=tools::md5sum(file.path(script_dir, c("blp_three_models.R","tables_and_figures.R","clip_k_sensitivity.R","robustness_checks.R","placebo_nesting.R")))}
 # ── Run all three computation scripts ────────────────────────────────────────
 # Each script is self-contained: reads raw data, runs estimation/simulation,
 # and writes output CSVs to output/.  cache=TRUE means this block only
@@ -102,6 +102,7 @@ source(file.path(script_dir, "blp_three_models.R"))
 source(file.path(script_dir, "tables_and_figures.R"))
 source(file.path(script_dir, "clip_k_sensitivity.R"))
 source(file.path(script_dir, "robustness_checks.R"))
+source(file.path(script_dir, "placebo_nesting.R"))
 ```
 
 ```{r load_results, include=FALSE}
@@ -136,7 +137,7 @@ This paper offers a pragmatic pipeline for exactly that environment, with one me
 
 The empirical laboratory is Colgate-Palmolive's acquisition of hello Products LLC, a fast-growing premium "naturally friendly" oral-care brand. The deal was announced on 23 January 2020 and completed on 31 January 2020 for \$351 million in cash, giving a clean event date (2020Q1) inside the sample. Using an ASIN-by-quarter panel of the Amazon US toothpaste market (2018Q1--2022Q3, 159 products), we estimate three demand models via the Berry (1994) nested-logit linearisation that are identical in every respect except the nest assignment: M1 imposes no nesting (plain logit), M2 nests by brand, and M3 nests by K=5 CLIP clusters. With the price coefficient fixed by calibration, the remaining parameters are estimated by concentrated OLS with quarter fixed effects and the nesting parameter $\rho$ is profiled by grid search. Marginal costs are recovered from the Bertrand first-order conditions, and the merger is simulated by recomputing Nash equilibrium prices under pre- and post-merger ownership at fixed pre-merger costs.
 
-Three results stand out. First, CLIP-based nesting fits demand best: the profiled nesting parameter is $\rho^{*}=0.67$ and the residual sum of squares falls by 8.1% relative to plain logit, against 3.1% for brand nesting. Second, and most important, CLIP nesting drives the share of observations with *negative implied marginal costs* from 8.6% under both plain logit and brand nesting down to 1.7%. Negative recovered costs are the classic symptom of a demand system that understates substitutability and so overstates markups; their near-elimination is direct evidence that embedding-based nests capture the competitive structure that brand labels miss. Third, the economics of the merger change materially: CLIP places hello and Colgate in different clusters, implying low diversion between the merging parties, and the simulated price effect for hello falls from +1.23% (plain logit) to +0.40% (CLIP nesting), with Colgate's own effect essentially zero.
+Three results stand out. First, CLIP-based nesting fits demand best: the profiled nesting parameter is $\rho^{*}=0.67$ and the residual sum of squares falls by 8.1% relative to plain logit, against 3.1% for brand nesting. Second, and most important, CLIP nesting drives the share of observations with *negative implied marginal costs* from 8.6% under both plain logit and brand nesting down to 1.7%. Negative recovered costs are the classic symptom of a demand system that understates substitutability and so overstates markups; their near-elimination shows the model's cost side is repaired. A placebo analysis (Section \@ref(placebo)) establishes that this cost-side repair is generic to any cross-firm nesting; what is specific to CLIP is that it also fits demand better than 97.5% of random partitions and, as the third result shows, yields a merger prediction that no random partition reproduces. Third, the economics of the merger change materially: CLIP places hello and Colgate in different clusters, implying low diversion between the merging parties, and the simulated price effect for hello falls from +1.23% (plain logit) to +0.40% (CLIP nesting), with Colgate's own effect essentially zero.
 
 Beyond the specific merger, the exercise is built as a transparent, reproducible template for antitrust practitioners. Every step, from embedding construction through the $\rho$ grid search to the Nash counterfactuals, runs from a single document, and the Nash solver is validated against PyBLP's counterfactual routines (Conlon and Gortmaker 2020) to numerical precision. The remainder of the paper proceeds as follows. Section 2 relates the approach to the literature. Section 3 describes the industry setting, the data, and the embedding construction. Section 4 lays out the empirical framework. Section 5 presents the results, and Section 6 discusses limitations. Section 7 concludes.
 
@@ -1035,6 +1036,83 @@ kbl(tab4,
     general_title  = "Notes: "
   )
 ```
+
+## Placebo Nesting Tests {#placebo}
+
+The negative-MC result invites a sharp question: is the improvement specific to the *semantic content* of the CLIP embeddings, or would any five-way partition that cuts across ownership boundaries do as well? Appendix D shows the cost side can improve only when nests cross firms, so the concern is real. We test it head-on. Two placebo nestings are drawn 200 times each and pushed through the identical pipeline -- calibration, $\rho$ profile, cost inversion, and merger simulation: (A) each ASIN assigned to one of five nests uniformly at random, and (B) the CLIP cluster labels permuted across ASINs, which holds the CLIP nest-size distribution fixed while severing the product-to-embedding link. The harness reproduces the real CLIP figures exactly (hello effect +0.404%), so the placebos are measured on the same ruler.
+
+Table \@ref(tab:placebo-tab) and Figure \@ref(fig:placebo-fig) separate what is generic from what is specific to CLIP.
+
+*The cost-side repair is generic.* Random cross-firm nests lower the negative-MC rate to a median of 0.9%, matching CLIP's 1.7% or bettering it in 96% of draws. Any partition that crosses ownership repairs the cost side, exactly as Appendix D predicts. The 8.6% to 1.7% drop is a genuine and important property of CLIP nesting, but on its own it does not isolate the embeddings.
+
+*The demand fit is not generic.* CLIP's RSS drop of 8.1% exceeds that of 97.5% of random partitions (median 5.3%), and its $\rho^{*}=0.67$ exceeds 97% of them. A nesting lowers residual variance only when the products grouped together genuinely share demand shocks; CLIP achieves this because embedding-similar products are economically similar, whereas random groupings add mostly noise.
+
+*The merger prediction is not generic -- and this is decisive.* CLIP's hello price effect of +0.40% lies below *every one* of the 200 random draws, which range from +2.9% to +10.3% (median +5.9%, a fourteen-fold gap). The mechanism is economic, not statistical. Colgate sells many ASINs; a random partition scatters them across all five nests, so hello's nest almost always contains some Colgate products by accident, manufacturing hello-to-Colgate diversion that has no economic basis and inflating the simulated effect. CLIP places Colgate's entire product line in a single cluster, cleanly apart from hello's natural/specialty cluster, so the diversion between the merging parties -- and hence the merger effect -- reflects genuine product differentiation rather than an artifact of random co-nesting. Placebo B sharpens this: permuting the CLIP labels holds the nest-size distribution exactly fixed, yet still lowers the negative-MC rate (median 1.6%) while inflating the hello effect (median +5.2%). It is therefore the *assignment* of products to nests, not the sizes of the nests, that CLIP gets right.
+
+The three results together give the precise statement of the contribution. Cross-firm nesting of any kind can repair the cost side; only CLIP repairs it *while* fitting demand better than 97.5% of random partitions and delivering a merger counterfactual free of the spurious diversion those partitions introduce. Brand nesting, at the other extreme, separates the merging parties but leaves the cost side untouched (Appendix D). Of the nesting rules considered, CLIP is the only one that satisfies all three criteria at once.
+
+```{r placebo-fig, fig.cap="Placebo nesting tests (200 random cross-firm partitions). Left: the negative-MC rate under random nests (bars) reaches CLIP's level (blue dashed) or lower in 96\\% of draws -- the cost-side repair is generic, far below the M1=M2 baseline (red). Right: the simulated hello merger price effect under random nests ranges from +2.9\\% to +10.3\\%; CLIP's +0.40\\% (blue dashed) lies below all 200 draws, because CLIP alone keeps Colgate's product line out of hello's nest.", fig.width=7, fig.height=3.3}
+plb <- fread(file.path(out_dir, "placebo_replications.csv"))
+p_neg <- ggplot(plb, aes(negA)) +
+  geom_histogram(bins = 28, fill = "#f2a25c", colour = "white", linewidth = 0.2) +
+  geom_vline(xintercept = 8.6, colour = "#c0392b", linewidth = 0.7) +
+  geom_vline(xintercept = 1.7, colour = "#2563eb", linetype = "dashed", linewidth = 0.7) +
+  annotate("text", x = 1.7, y = Inf, label = "CLIP 1.7%", colour = "#2563eb",
+           hjust = -0.06, vjust = 1.5, size = 2.5) +
+  annotate("text", x = 8.6, y = Inf, label = "M1=M2 8.6%", colour = "#c0392b",
+           hjust = 1.05, vjust = 1.5, size = 2.5) +
+  labs(x = "Negative-MC rate (%)", y = "Random partitions",
+       subtitle = "Cost repair is generic") +
+  theme_minimal(base_size = 9) +
+  theme(panel.grid.minor = element_blank())
+p_eff <- ggplot(plb, aes(helloA)) +
+  geom_histogram(bins = 28, fill = "#7fbf9a", colour = "white", linewidth = 0.2) +
+  geom_vline(xintercept = 0.404, colour = "#2563eb", linetype = "dashed", linewidth = 0.7) +
+  annotate("text", x = 0.404, y = Inf, label = "CLIP +0.40%", colour = "#2563eb",
+           hjust = -0.05, vjust = 1.5, size = 2.5) +
+  labs(x = "hello merger price effect (%)", y = NULL,
+       subtitle = "Merger prediction is not") +
+  theme_minimal(base_size = 9) +
+  theme(panel.grid.minor = element_blank())
+p_neg + p_eff
+```
+
+```{r placebo-tab}
+ps <- fread(file.path(out_dir, "placebo_summary.csv"))
+pct <- if (is_pdf) "\\%" else "%"
+lab <- c(rho_star = if (is_pdf) "$\\rho^{*}$" else "rho*",
+         rss_drop = paste0("RSS drop (", pct, ")"), neg_mc = paste0("Neg-MC (", pct, ")"),
+         hello_eff = paste0("hello effect (", pct, ")"),
+         colgate_eff = paste0("Colgate effect (", pct, ")"))
+ps[, metric := lab[metric]]
+tab_pl <- ps[, .(
+  Metric = metric,
+  clip   = sprintf("%.2f", clip),
+  randA  = sprintf("%.2f [%.2f, %.2f]", A_med, A_p05, A_p95),
+  shufB  = sprintf("%.2f", B_med)
+)]
+col_pl <- if (is_pdf) {
+  c("Metric", "CLIP (real)", "Random A (median [5--95\\%])", "Shuffled B (median)")
+} else {
+  c("Metric", "CLIP (real)", "Random A (median [5-95%])", "Shuffled B (median)")
+}
+kbl(tab_pl, col.names = col_pl, format = tbl_fmt, booktabs = TRUE, escape = FALSE,
+    caption = "Placebo Nesting Tests: CLIP vs 200 Random and Shuffled Partitions",
+    align = c("l","r","r","r")) |>
+  row_spec(4, bold = TRUE) |>
+  kable_styling(bootstrap_options = c("striped","hover","condensed"),
+                latex_options = c("HOLD_position"),
+                font_size = if (is_pdf) 9 else 13, full_width = FALSE) |>
+  footnote(general = paste0(
+    "200 draws each. Random A: every ASIN assigned to one of five nests uniformly ",
+    "at random (cross-firm, no semantics). Shuffled B: CLIP cluster labels permuted ",
+    "across ASINs (CLIP nest-size distribution preserved). All draws run through the ",
+    "identical calibration, rho profile, cost inversion, and merger simulation as M3. ",
+    "hello effect = average post-merger Nash price effect for hello. Bold row = the ",
+    "decisive result: CLIP's +0.40% lies below all 200 random draws (min +2.90%)."),
+    escape = TRUE, threeparttable = TRUE, general_title = "Notes: ")
+```
+
 
 ---
 
