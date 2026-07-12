@@ -296,3 +296,33 @@ cat(sprintf("P(random RSS drop >= CLIP %.1f%%) = %.1f%%  [CLIP fits better]\n",
 cat(sprintf("P(random hello effect <= CLIP %.2f%%) = %.1f%%  [merger prediction unique to CLIP]\n",
     clip_row$hello_eff, 100*mean(reps$helloA <= clip_row$hello_eff)))
 cat(sprintf("hello & Colgate same random nest: %.1f%%\n", 100*mean(reps$sameA)))
+
+# ── HAND-CODED KEYWORD BASELINE ──────────────────────────────────────────────
+# A human analyst's rule-based categories from the raw listing text (title +
+# product_benefit) — no CLIP output used. Two priority orders, since most
+# listings carry several benefit claims and the analyst must break ties:
+#   benefit-first : kids > sensitivity > whitening > natural > standard
+#   natural-first : natural > kids > sensitivity > whitening > standard
+# (natural-first is the merger-aware order: it deliberately pulls every
+# natural-positioned product, including hello, into one nest)
+titles <- fread(file.path(repo_dir, "scripts/CLIP-Embeddings/asin_titles.csv"))
+titles[, text := tolower(paste(title, product_benefit))]
+KW_KID <- "kid|child|toddler|baby|junior"
+KW_SEN <- "sensitiv|enamel|pronamel"
+KW_WHI <- "whiten|charcoal|stain|bright"
+KW_NAT <- "natural|herbal|organic|vegan|fluoride.free|sls.free|botanic|aloe|coconut"
+titles[, hand_ben := fifelse(grepl(KW_KID, text), 1L, fifelse(grepl(KW_SEN, text), 2L,
+                     fifelse(grepl(KW_WHI, text), 3L, fifelse(grepl(KW_NAT, text), 4L, 5L))))]
+titles[, hand_nat := fifelse(grepl(KW_NAT, text), 1L, fifelse(grepl(KW_KID, text), 2L,
+                     fifelse(grepl(KW_SEN, text), 3L, fifelse(grepl(KW_WHI, text), 4L, 5L))))]
+for (v in c("hand_ben", "hand_nat")) {
+  hm <- setNames(titles[[v]], titles$asin)
+  panel0[, (v) := hm[as.character(asin)]]
+  panel0[is.na(get(v)), (v) := 5L]
+}
+r_ben <- run_scenario(LAMBDA_BASE, "hand_ben", "logit", "avg", "HAND benefit-first")
+r_nat <- run_scenario(LAMBDA_BASE, "hand_nat", "logit", "avg", "HAND natural-first")
+hand <- rbind(cbind(variant = "benefit_first", r_ben[, .(rho_star, rss_drop, neg_mc, hello_eff, colgate_eff)]),
+              cbind(variant = "natural_first", r_nat[, .(rho_star, rss_drop, neg_mc, hello_eff, colgate_eff)]))
+fwrite(hand, file.path(out_dir, "handcoded_baseline.csv"))
+cat("\n=== HAND-CODED KEYWORD BASELINE ===\n"); print(hand)

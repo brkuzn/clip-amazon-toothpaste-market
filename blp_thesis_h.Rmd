@@ -1049,7 +1049,9 @@ Table \@ref(tab:placebo-tab) and Figure \@ref(fig:placebo-fig) separate what is 
 
 *The merger prediction is not generic -- and this is decisive.* CLIP's hello price effect of +0.40% lies below *every one* of the 200 random draws, which range from +2.9% to +10.3% (median +5.9%, a fourteen-fold gap). The mechanism is economic, not statistical. Colgate sells many ASINs; a random partition scatters them across all five nests, so hello's nest almost always contains some Colgate products by accident, manufacturing hello-to-Colgate diversion that has no economic basis and inflating the simulated effect. CLIP places Colgate's entire product line in a single cluster, cleanly apart from hello's natural/specialty cluster, so the diversion between the merging parties -- and hence the merger effect -- reflects genuine product differentiation rather than an artifact of random co-nesting. Placebo B sharpens this: permuting the CLIP labels holds the nest-size distribution exactly fixed, yet still lowers the negative-MC rate (median 1.6%) while inflating the hello effect (median +5.2%). It is therefore the *assignment* of products to nests, not the sizes of the nests, that CLIP gets right.
 
-The three results together give the precise statement of the contribution. Cross-firm nesting of any kind can repair the cost side; only CLIP repairs it *while* fitting demand better than 97.5% of random partitions and delivering a merger counterfactual free of the spurious diversion those partitions introduce. Brand nesting, at the other extreme, separates the merging parties but leaves the cost side untouched (Appendix D). Of the nesting rules considered, CLIP is the only one that satisfies all three criteria at once.
+*Nor is a hand-coded classification a substitute.* One further question a referee would ask: could a human analyst reading the listings simply build these nests by hand? We construct a keyword classifier on the raw title and benefit text (kids, sensitivity, whitening, natural, standard), in two tie-breaking orders since most listings carry several benefit claims, and run both through the same pipeline. The keyword nests fit demand worse than the *median random partition* (RSS drops of 4.2% and 4.4% against the random median of 5.3%), and both variants predict hello price effects above +4.5%. The natural-first variant fails in an instructive way: it does separate hello from the Colgate brand, but it pulls thirteen Tom's of Maine listings -- Colgate-owned -- into hello's nest, because Tom's carries the same natural keywords. CLIP instead assigns hello, Colgate, and Tom's of Maine to three *different* clusters: the embeddings register that hello's bright, design-led positioning is not Tom's of Maine's earth-toned health-store positioning, a distinction invisible to any keyword list, and the demand data reward exactly this distinction with the largest fit improvement.
+
+The three results together give the precise statement of the contribution. Cross-firm nesting of any kind can repair the cost side; only CLIP repairs it *while* fitting demand better than 97.5% of random partitions and delivering a merger counterfactual free of the spurious diversion those partitions introduce. Brand nesting, at the other extreme, separates the merging parties but leaves the cost side untouched (Appendix D). A keyword classification fares no better: it fits worse than the median random draw and, in its natural-first form, co-nests hello with Colgate's natural subsidiary. Of the nesting rules considered, CLIP is the only one that satisfies all three criteria at once.
 
 ```{r placebo-fig, fig.cap="Placebo nesting tests (200 random cross-firm partitions). Left: the negative-MC rate under random nests (bars) reaches CLIP's level (blue dashed) or lower in 96\\% of draws -- the cost-side repair is generic, far below the M1=M2 baseline (red). Right: the simulated hello merger price effect under random nests ranges from +2.9\\% to +10.3\\%; CLIP's +0.40\\% (blue dashed) lies below all 200 draws, because CLIP alone keeps Colgate's product line out of hello's nest.", fig.width=7, fig.height=3.3}
 plb <- fread(file.path(out_dir, "placebo_replications.csv"))
@@ -1079,6 +1081,11 @@ p_neg + p_eff
 
 ```{r placebo-tab}
 ps <- fread(file.path(out_dir, "placebo_summary.csv"))
+hb <- fread(file.path(out_dir, "handcoded_baseline.csv"))
+hn <- hb[variant == "natural_first"]
+hvals <- c(rho_star = hn$rho_star, rss_drop = hn$rss_drop, neg_mc = hn$neg_mc,
+           hello_eff = hn$hello_eff, colgate_eff = hn$colgate_eff)
+ps[, hand := hvals[metric]]
 pct <- if (is_pdf) "\\%" else "%"
 lab <- c(rho_star = if (is_pdf) "$\\rho^{*}$" else "rho*",
          rss_drop = paste0("RSS drop (", pct, ")"), neg_mc = paste0("Neg-MC (", pct, ")"),
@@ -1089,16 +1096,19 @@ tab_pl <- ps[, .(
   Metric = metric,
   clip   = sprintf("%.2f", clip),
   randA  = sprintf("%.2f [%.2f, %.2f]", A_med, A_p05, A_p95),
-  shufB  = sprintf("%.2f", B_med)
+  shufB  = sprintf("%.2f", B_med),
+  handc  = sprintf("%.2f", hand)
 )]
 col_pl <- if (is_pdf) {
-  c("Metric", "CLIP (real)", "Random A (median [5--95\\%])", "Shuffled B (median)")
+  c("Metric", "CLIP (real)", "Random A (median [5--95\\%])", "Shuffled B (median)",
+    "Keywords (nat.-first)")
 } else {
-  c("Metric", "CLIP (real)", "Random A (median [5-95%])", "Shuffled B (median)")
+  c("Metric", "CLIP (real)", "Random A (median [5-95%])", "Shuffled B (median)",
+    "Keywords (nat.-first)")
 }
 kbl(tab_pl, col.names = col_pl, format = tbl_fmt, booktabs = TRUE, escape = FALSE,
-    caption = "Placebo Nesting Tests: CLIP vs 200 Random and Shuffled Partitions",
-    align = c("l","r","r","r")) |>
+    caption = "Placebo and Baseline Nesting Tests: CLIP vs Random, Shuffled, and Hand-Coded Partitions",
+    align = c("l","r","r","r","r")) |>
   row_spec(4, bold = TRUE) |>
   kable_styling(bootstrap_options = c("striped","hover","condensed"),
                 latex_options = c("HOLD_position"),
@@ -1108,6 +1118,8 @@ kbl(tab_pl, col.names = col_pl, format = tbl_fmt, booktabs = TRUE, escape = FALS
     "at random (cross-firm, no semantics). Shuffled B: CLIP cluster labels permuted ",
     "across ASINs (CLIP nest-size distribution preserved). All draws run through the ",
     "identical calibration, rho profile, cost inversion, and merger simulation as M3. ",
+    "Keywords = hand-coded keyword categories from the raw listing text, natural-first ",
+    "tie-breaking (the benefit-first variant is similar: RSS drop 4.2%, hello +4.51%). ",
     "hello effect = average post-merger Nash price effect for hello. Bold row = the ",
     "decisive result: CLIP's +0.40% lies below all 200 random draws (min +2.90%)."),
     escape = TRUE, threeparttable = TRUE, general_title = "Notes: ")
