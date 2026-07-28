@@ -19,11 +19,21 @@
 % Fuer die GEDRUCKTE/gebundene Fassung: twoside,openright,cleardoubleempty
 % statt oneside,openany einsetzen (dann beginnen Kapitel auf rechten Seiten
 % und Leerseiten werden eingefuegt).
-\documentclass[a4paper,titlepage,liststotoc,final,oneside,openany,BCOR12mm]{scrreprt}
+\documentclass[a4paper,titlepage,liststotoc,final,oneside,openany,BCOR12mm,fontsize=12pt]{scrreprt}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[ngerman,english]{babel}   % Englisch = Hauptsprache des Texts
+% delta/xi im Fliesstext fuer pdflatex verfuegbar machen, damit der
+% uebernommene Text unveraendert bleiben kann.
+\DeclareUnicodeCharacter{03B4}{\ensuremath{\delta}}
+\DeclareUnicodeCharacter{03BE}{\ensuremath{\xi}}
+\usepackage{mathptmx}          % Times New Roman (Text und Mathe)
+\usepackage{setspace}
+\onehalfspacing        % 1,5-zeiliger Zeilenabstand
+\usepackage{etoolbox}
+\AtBeginEnvironment{tabular}{\singlespacing}
+\AtBeginEnvironment{longtable}{\singlespacing}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage[table]{xcolor}
@@ -41,6 +51,7 @@
 \usepackage{threeparttable}
 \usepackage{caption}
 \captionsetup[table]{skip=6pt}
+\captionsetup{font=singlespacing}
 \usepackage{float}
 \floatplacement{figure}{H}
 \usepackage{placeins}
@@ -149,7 +160,7 @@ diversion between the merging parties is small: the simulated merger price
 effect for hello falls from +1.23\% under plain logit to +0.40\% under CLIP
 nesting. Placebo tests confirm that any cross-firm nesting can repair the cost
 side; what is distinctive to CLIP is that it also fits demand better than
-97.5\% of random partitions and yields a merger counterfactual free of the
+95\% of random partitions and yields a merger counterfactual free of the
 spurious diversion those partitions introduce. The results suggest
 embedding-based nests are a practical, replicable tool for antitrust analysis
 when conventional product characteristics are unavailable.
@@ -174,7 +185,7 @@ Fusionsparteien gering: Der simulierte Preiseffekt der Fusion f\"ur hello sinkt
 von +1{,}23\,\% (einfaches Logit) auf +0{,}40\,\% (CLIP-Nester). Placebo-Tests
 best\"atigen, dass jede firmen\"ubergreifende Nest-Struktur die Kostenseite
 reparieren kann; CLIP zeichnet sich dadurch aus, dass es zus\"atzlich die
-Nachfrage besser anpasst als 97{,}5\,\% zuf\"alliger Partitionen und eine
+Nachfrage besser anpasst als 95\,\% zuf\"alliger Partitionen und eine
 Fusionssimulation liefert, die frei von der durch solche Partitionen erzeugten
 Scheindiversion ist. Die Ergebnisse legen nahe, dass einbettungsbasierte Nester
 ein praktikables, reproduzierbares Instrument der Wettbewerbsanalyse sind, wenn
