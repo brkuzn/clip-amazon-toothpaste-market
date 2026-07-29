@@ -28,7 +28,7 @@ output:
     fig_caption: true
     keep_tex: false
     extra_dependencies: ["booktabs", "longtable", "array", "multirow", "threeparttable", "caption"]
-geometry: "margin=1in"
+geometry: "left=3.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm"
 fontsize: 12pt
 header-includes:
   - \usepackage{mathptmx}
