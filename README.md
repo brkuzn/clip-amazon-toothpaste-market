@@ -21,9 +21,14 @@ Three demand models are estimated and compared:
 
 ---
 
-## Quick Browse (no code required)
+## Read the thesis (no code required)
 
-Open **`blp_three_models.html`** directly in any browser for the full interactive dashboard: all three models, demand estimates, merger simulation, price trajectories, K sensitivity analysis, and a complete references list.
+Two rendered PDFs sit in the repository root, both built from the same source, `blp_thesis_h.Rmd`:
+
+| File | What it is |
+|---|---|
+| `Demand_Estimation_with_Unstructured_Product_Data_UzunBurak_2026.pdf` | Submission version, University of Oldenburg template |
+| `Demand_Estimation_with_Unstructured_Product_Data_UzunBurak_2026_article.pdf` | Article version |
 
 ---
 
@@ -39,15 +44,18 @@ clip-amazon-toothpaste-market/
 │   ├── blp_three_models.R             # MAIN: demand estimation + merger simulation
 │   ├── clip_k_sensitivity.R           # K=2..10 sensitivity analysis
 │   ├── tables_and_figures.R           # Table 1, Figure 1, Figure 2
-│   ├── build_thesis_pdf.R             # Renders the Rmd into the Uni Oldenburg template
+│   ├── build_thesis_pdf.R             # Builds both PDFs from blp_thesis_h.Rmd
+│   ├── placebo_nesting.R              # 200 random + 200 shuffled placebo partitions
+│   ├── robustness_checks.R            # Scenario grid, diversion ratios, welfare
+│   ├── brand_orthogonal_nesting.R     # Clusters the brand-residual embedding space
+│   ├── brand_fe_variants.R            # Brand fixed effects under all three nestings
+│   ├── cluster_ownership_diagnostic.R # Firms per CLIP cluster
 │   ├── CLIP-Embeddings/               # Upstream embedding pipeline (see its README.md)
 │   │   ├── asin_master_for_embeddings.parquet   # Input: ASIN titles/benefits/image URLs
 │   │   ├── clip_asin_embedding_extraction.ipynb # CLIP extraction (Colab/GPU)
 │   │   ├── asin_features_for_blp_clip.csv       # Extraction output (committed for exact repro)
 │   │   └── asin_joint_pca.R                     # Joint PCA → data/asin_joint_pcs_complete.csv
 │   │                                            #   (verified byte-identical reproduction)
-│   └── inject_tables.R                # DEV ONLY: injects kableExtra tables into HTML
-│                                      #   (hardcoded local paths, not needed for replication)
 ├── output/                            # Reference outputs (scripts regenerate these in place)
 │   ├── figure1_clip_space.png         # CLIP PC1×PC2 scatter (K=5 clusters)
 │   ├── figure2_price_trajectories.png # Nash merger vs no-merger price paths
@@ -67,10 +75,12 @@ clip-amazon-toothpaste-market/
 │   ├── pyblp_2020_conlon_gortmaker.pdf
 │   ├── learning_transferable_visual_models.pdf
 │   └── compiani_estimating_demand.pdf  # Compiani, Morozov & Seiler (2026, RAND J. Econ.)
-├── blp_thesis.Rmd                     # Self-contained R Markdown → compiles full PDF + HTML
-├── blp_thesis.pdf                   # 7-page thesis PDF
-└── blp_thesis.html                   # 7-page thesis html
-└── blp_three_models.html              # Interactive results dashboard (open in browser)
+├── thesis/                            # Oldenburg template assets (LaTeX template,
+│                                      #   title page, logos, HTML front matter)
+├── blp_thesis_h.Rmd                   # THE SOURCE. Self-contained: sources every
+│                                      #   script, runs the pipeline, renders both PDFs
+├── Demand_..._UzunBurak_2026.pdf         # Submission version (Oldenburg template)
+└── Demand_..._UzunBurak_2026_article.pdf # Article version
 ```
 
 ---
@@ -92,24 +102,29 @@ R ≥ 4.2 and [TinyTeX](https://yihui.org/tinytex/) (or another LaTeX distributi
 
 ### Option A — Knit the thesis Rmd (recommended)
 
-`blp_thesis.Rmd` is fully self-contained. It **automatically sources all three scripts**, runs the complete pipeline from raw data, and renders every table and figure. You do **not** need to run any scripts separately beforehand.
+`blp_thesis_h.Rmd` is fully self-contained. It **automatically sources every analysis script**, runs the complete pipeline from raw data, and renders every table and figure. You do **not** need to run any scripts separately beforehand.
 
 **No path configuration needed** — the Rmd auto-detects its own location on Windows, Mac, and Linux, regardless of what the repo folder is named (e.g. `clip-amazon-toothpaste-market-main/` from a GitHub ZIP download works fine).
 
-1. Open `blp_thesis.Rmd` in RStudio and click **Knit**, or run:
+Open `blp_thesis_h.Rmd` in RStudio and click **Knit** — the `knit:` hook in its YAML header builds *both* PDFs under their final names. Equivalently, from the repo root:
 
 ```r
-# Render both HTML and PDF in one call (recommended)
-rmarkdown::render("blp_thesis.Rmd", output_format = "all")
-
-# HTML only — no LaTeX needed, renders in minutes
-rmarkdown::render("blp_thesis.Rmd", output_format = "html_document")
-
-# PDF only — requires TinyTeX or another LaTeX distribution
-rmarkdown::render("blp_thesis.Rmd", output_format = "pdf_document")
+# Both PDFs (requires TinyTeX or another LaTeX distribution)
+source("scripts/build_thesis_pdf.R"); build_thesis()
 ```
 
-On the first knit the computation chunk runs all three scripts (≈ 25–30 min total). Subsequent knits are fast — results are cached and only recompute if a script file changes.
+```bash
+# Same thing from a shell; --thesis or --article builds just one
+Rscript scripts/build_thesis_pdf.R
+```
+
+An HTML rendering is still defined in the YAML header should you want one; it is not committed:
+
+```r
+rmarkdown::render("blp_thesis_h.Rmd", output_format = "bookdown::html_document2")
+```
+
+On the first knit the computation chunk runs the analysis scripts (≈ 25–30 min total). Subsequent knits are fast — results are cached and only recompute if a script file changes.
 
 ### Option B — Run scripts directly (no Rmd)
 
@@ -137,7 +152,6 @@ source("/path/to/repo/scripts/tables_and_figures.R")
 
 All scripts write directly into `output/`, overwriting the reference copies shipped with the repo. To compare your results against ours, diff against the committed versions (e.g. `git diff output/`) — all randomness is seed-pinned, so results should match to numerical precision (tiny last-digit floating-point differences across machines/BLAS libraries are normal).
 
-> **Note:** `inject_tables.R` is a development utility used to rebuild `blp_three_models.html` from local intermediate files. It contains hardcoded paths specific to the author's machine and is **not needed** for replication — the HTML is already fully built and included in the repo.
 
 ---
 
@@ -195,7 +209,7 @@ Pre-merger marginal costs inverted from first-order conditions, averaged per ASI
 - hello merger price effect: **+0.40%**
 - Colgate merger price effect: **+0.018%**
 
-See `blp_three_models.html` for the interactive dashboard with all three models, price trajectories, K sensitivity analysis, and full references.
+See the rendered PDFs in the repository root for all three models, price trajectories, the K sensitivity analysis, and full references.
 
 ---
 

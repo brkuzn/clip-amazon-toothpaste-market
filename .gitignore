@@ -26,6 +26,15 @@ blp_cache/
 *clip_nesting*.csv
 *clip_nests_assign*.csv
 
+# Rendered HTML. The two PDFs are the only rendered deliverables;
+# thesis/html_front.html is a build input, not an output.
+*.html
+!thesis/html_front.html
+
+# Intermediates left by the two-pass thesis build
+*.knit.md
+*.utf8.md
+
 # LaTeX build logs
 *.log
 blp_thesis_h_cache/

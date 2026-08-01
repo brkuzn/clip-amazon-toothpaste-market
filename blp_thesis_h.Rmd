@@ -7,6 +7,13 @@ abstract: |
   Merger simulation lives or dies on substitution patterns, and the nesting structures used in practice are usually built from the coarsest label available: brand. This paper asks whether product representations extracted from unstructured listing content -- images and text, encoded with CLIP (Radford et al., 2021) -- do the job better. The setting is an ASIN-by-quarter panel of the Amazon US toothpaste market around Colgate-Palmolive's 2020 acquisition of the natural-brand hello, where we estimate three nested-logit demand models via the Berry (1994) linearisation that are identical except for how nests are assigned: none, brand, or k-means clusters of CLIP image-and-text embeddings. CLIP nesting fits demand best. It also cuts the share of economically implausible negative implied marginal costs from 8.6% to 1.7%, and because it places hello and Colgate in different clusters, implied diversion between the merging parties is small -- the simulated merger price effect for hello falls from +1.23% under plain logit to +0.40%. Placebo tests show that any cross-firm nesting can repair the cost side. What only CLIP does is repair it while fitting demand better than 95% of random partitions and producing a merger counterfactual free of the spurious diversion those partitions introduce. For antitrust work where conventional product characteristics are unavailable, embedding-based nests are a practical, replicable tool.
   **Keywords:** demand estimation; unstructured data; CLIP embeddings; nested logit; merger simulation; antitrust.
   **JEL codes:** C55, D12, L13, L41, L81.
+knit: >
+  (function(input, ...) {
+    src <- normalizePath(input)
+    e <- new.env()
+    sys.source(file.path(dirname(src), "scripts", "build_thesis_pdf.R"), envir = e)
+    e$build_thesis(src)
+  })
 output:
   bookdown::pdf_document2:
     latex_engine: pdflatex
