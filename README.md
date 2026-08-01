@@ -66,22 +66,17 @@ clip-amazon-toothpaste-market/
 │   ├── clip_k_sensitivity.csv
 │   ├── model{1,2,3}_coefficients.csv
 │   └── model{1,2,3}_asin_results.csv  # ASIN×quarter: share, mc, elasticity, Nash prices
-├── papers/                            # Reference PDFs for all cited works
-│   ├── Berry1994.pdf
-│   ├── JMR_2005_BijmoltVanHeerdePieters.pdf
-│   ├── Consumer_Preferences_and_Product-Line_Pricing_Stra.pdf
-│   ├── nevo2000.pdf
-│   ├── nevo-2001-cereal.pdf
-│   ├── pyblp_2020_conlon_gortmaker.pdf
-│   ├── learning_transferable_visual_models.pdf
-│   └── compiani_estimating_demand.pdf  # Compiani, Morozov & Seiler (2026, RAND J. Econ.)
 ├── thesis/                            # Oldenburg template assets (LaTeX template,
-│                                      #   title page, logos, HTML front matter)
+│                                      #   title page, university logos)
 ├── blp_thesis_h.Rmd                   # THE SOURCE. Self-contained: sources every
 │                                      #   script, runs the pipeline, renders both PDFs
 ├── Demand_..._UzunBurak_2026.pdf         # Submission version (Oldenburg template)
 └── Demand_..._UzunBurak_2026_article.pdf # Article version
 ```
+
+Reference PDFs of the cited works are not redistributed here — they are
+third-party copyrighted articles and nothing in the pipeline reads them.
+Every source is fully cited in the thesis reference list.
 
 ---
 
@@ -116,12 +111,6 @@ source("scripts/build_thesis_pdf.R"); build_thesis()
 ```bash
 # Same thing from a shell; --thesis or --article builds just one
 Rscript scripts/build_thesis_pdf.R
-```
-
-An HTML rendering is still defined in the YAML header should you want one; it is not committed:
-
-```r
-rmarkdown::render("blp_thesis_h.Rmd", output_format = "bookdown::html_document2")
 ```
 
 On the first knit the computation chunk runs the analysis scripts (≈ 25–30 min total). Subsequent knits are fast — results are cached and only recompute if a script file changes.

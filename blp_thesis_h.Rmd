@@ -22,22 +22,13 @@ output:
     fig_caption: true
     keep_tex: false
     extra_dependencies: ["booktabs", "longtable", "array", "multirow", "threeparttable", "caption"]
-  bookdown::html_document2:
-    includes:
-      before_body: thesis/html_front.html
-    number_sections: true
-    toc: true
-    toc_float: true
-    theme: flatly
-    highlight: tango
-    fig_caption: true
-    df_print: kable
-    css: thesis/thesis.css
 geometry: "left=3.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm"
 fontsize: 12pt
 header-includes:
   - \usepackage{mathptmx}
   - \usepackage{xurl}
+  - \AtBeginDocument{\urlstyle{same}}
+  - \renewcommand{\ttdefault}{\rmdefault}
   - \emergencystretch=3em
   - \DeclareUnicodeCharacter{03B4}{\ensuremath{\delta}}
   - \DeclareUnicodeCharacter{03BE}{\ensuremath{\xi}}
@@ -64,10 +55,14 @@ header-includes:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
-  echo    = FALSE,
-  message = FALSE,
-  warning = FALSE,
-  fig.pos = "H"
+  echo     = FALSE,
+  message  = FALSE,
+  warning  = FALSE,
+  fig.pos  = "H",
+  # Draw every figure in Times so the plots match the body text. The ggplot
+  # themes below set no `family`, so they inherit this device default.
+  dev      = "pdf",
+  dev.args = list(family = "Times")
 )
 
 # ── AUTO-DETECT PATHS ─────────────────────────────────────────────────────────

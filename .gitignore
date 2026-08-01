@@ -46,3 +46,8 @@ thesis/*.toc
 thesis/*.lof
 thesis/*.lot
 thesis/*.out
+
+# Reference copies of cited papers. Kept locally, not redistributed here:
+# they are third-party copyrighted articles and nothing in the pipeline
+# reads them. Every one is fully cited in the thesis reference list.
+papers/
