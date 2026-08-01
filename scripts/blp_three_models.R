@@ -7,8 +7,8 @@
 # MODEL 3: CLIP-nested logit      (ρ = ρ*,   nests = K=5 CLIP clusters)
 #
 # ALL MODELS:
-#   α  = calibrated to ε_target = −2.62         (professor step 3, fixed)
-#   β  = concentrated OLS at fixed (α, ρ)        (professor step 4)
+#   α  = calibrated to ε_target = −2.62         (fixed, not estimated)
+#   β  = concentrated OLS at fixed (α, ρ)
 #   ρ* = argmin RSS over grid [0, 0.90]           (profile for nested models)
 #
 # DEMAND:   Berry (1994) linearisation

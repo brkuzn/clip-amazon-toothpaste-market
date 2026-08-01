@@ -4,7 +4,7 @@
 # runs joint PCA directly on static ASIN-level embeddings.
 #
 # Rationale: brand×quarter aggregation destroyed within-brand
-# cross-sectional variation in CLIP embeddings (professor feedback).
+# cross-sectional variation in CLIP embeddings.
 # ASIN-level PCs restore that micro variation. Embeddings are
 # treated as static (one vector per ASIN) — Amazon listings do
 # not meaningfully change over the 2018–2022 window.
