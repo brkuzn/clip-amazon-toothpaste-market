@@ -205,7 +205,7 @@ hello Products LLC (founded in 2012), a “natural” oral care brand targeting 
 
 ## Data Sources
 
-The dataset forming the basis of the analyses in this study involved a very lengthy and intensive manual data manipulation process, clearly illustrating the accessibility constraints of research data in the online retail sector. The process consisted of combining two data sources. For household-level purchase history, we used the crowdsourced “Open E-commerce 1.0” dataset [Berke et al., 2024], distributed via Harvard Dataverse, which contains over 1.8 million transaction records from 5,027 U.S. Amazon consumers. This dataset has been validated by its developers using Amazon’s publicly available sales data; a Pearson correlation coefficient of r = 0.978 (p < 0.001) was found between total spending in the panel and Amazon’s published revenue [Berke et al., 2024]. The toothpaste purchase records extracted from the dataset for this study cover the period from January 2018 to March 2023 and include order timestamps, prices, and household ID numbers. Although household demographic characteristics are present in the source data, a Random Coefficient Logit model incorporating these variables effectively into the analysis was not constructed.
+The dataset forming the basis of the analyses in this study involved a very lengthy and intensive manual data manipulation process, clearly illustrating the accessibility constraints of research data in the online retail sector. The process consisted of combining two data sources. For household-level purchase history, we used the crowdsourced “Open E-commerce 1.0” dataset (Berke et al., 2024), distributed via Harvard Dataverse, which contains over 1.8 million transaction records from 5,027 U.S. Amazon consumers. This dataset has been validated by its developers using Amazon’s publicly available sales data; a Pearson correlation coefficient of r = 0.978 (p < 0.001) was found between total spending in the panel and Amazon’s published revenue (Berke et al., 2024). The toothpaste purchase records extracted from the dataset for this study cover the period from January 2018 to March 2023 and include order timestamps, prices, and household ID numbers. Although household demographic characteristics are present in the source data, a Random Coefficient Logit model incorporating these variables effectively into the analysis was not constructed.
 
 ## Sample Construction
 
@@ -275,11 +275,11 @@ Each product \(j\) is represented by concatenating the list image with the title
 $$\mathbf{e}^{I}_{j} = \frac{f_I(\text{image}_j)}{\lVert f_I(\text{image}_j) \rVert}, \qquad
 \mathbf{e}^{T}_{j} = \frac{f_T(\text{text}_j)}{\lVert f_T(\text{text}_j) \rVert}.$$
 
-In this study, the functionality of the CLIP model lies in its training objective. The CLIP model consists of two distinct network architectures: one is the more well-known text transformer (Vaswani et al., 2017), and the other is the ViT-B/32 Vision Transformer (as used in this study). This vision transformer processes each image sequentially by dividing it into 32x32-pixel patches, similar to how a language model processes tokens (Dosovitskiy et al., 2021, sec. 1; the checkpoint is specified in Radford et al., 2021, sec. 2.4-2.5). Both networks are mapped to a 512-dimensional space, and model training was conducted in a contrastive manner on 400 million image-text pairs collected from the web: In each training batch consisting of \(N\) pairs, the model is trained to maximize the cosine similarity of the \(N\) correct image-caption matches while minimizing the similarity of all incorrectly matched pairs (Radford et al. 2021, sec. 2; Figure 1 summarizes this scheme). Figure \@ref(fig:clip-scheme) illustrates the objective and role of this empirical workflow.
+In this study, the functionality of the CLIP model lies in its training objective. The CLIP model consists of two distinct network architectures: one is the more well-known text transformer (Vaswani et al., 2017), and the other is the ViT-B/32 Vision Transformer (as used in this study). This vision transformer processes each image sequentially by dividing it into 32x32-pixel patches, similar to how a language model processes tokens (Dosovitskiy et al., 2021; the checkpoint is specified in Radford et al., 2021). Both networks are mapped to a 512-dimensional space, and model training was conducted in a contrastive manner on 400 million image-text pairs collected from the web: In each training batch consisting of \(N\) pairs, the model is trained to maximize the cosine similarity of the \(N\) correct image-caption matches while minimizing the similarity of all incorrectly matched pairs (Radford et al., 2021). Figure \@ref(fig:clip-scheme) illustrates the objective and role of this empirical workflow.
 
 Two characteristics of the conrtastive training objective matter directly for how product caption data is used here. First, since the product captions describe products using everyday marketing language like “activated charcoal whitening toothpaste,” the trained space encodes the vocabulary of product features that distinguish consumer goods without requiring any category specific additional training. Also, since images and texts are embedded in a single integrated space, these two modalities can be combined into a single product representation. We explain how the joint Principal Component Analysis (PCA) utilized below takes advantage of this method.
 
-```{r clip-scheme, fig.cap="How CLIP embeddings are produced and used. Left: the contrastive training objective (after Radford et al., 2021). Right: the empirical pipeline from raw listing content to the nests of model M3.", fig.width=7.6, fig.height=3.8}
+```{r clip-scheme, fig.cap="How CLIP embeddings are produced and used. Left: a simplified version of the CLIP contrastive learning objective, drawn after Radford et al. (2021). Right: the empirical pipeline from raw listing content to the nests of model M3.", fig.width=7.6, fig.height=3.8}
 library(grid)
 grid.newpage()
 # left panel: contrastive similarity matrix
@@ -344,7 +344,7 @@ The clustering structure was established using k-means (Lloyd, 1982), and each p
 
 $$g_j = \arg\min_{g \in \{1,\dots,K\}} \lVert \mathbf{pc}_j - \mathbf{c}_g \rVert^2,$$
 
-with centroids $\mathbf{c}_g$ from 50 random draws, and cluster structute is the nest assignment in M3. These 5 nests explain 71.2% of joint principal components variance. One can see Appendix A, to check  cluster quality diagnostics -- within-cluster sum of squares and average silhouette width (Rousseeuw, 1987) -- together with all downstream results for $K = 2, \dots, 10$.
+with centroids $\mathbf{c}_g$ from 50 random draws, and cluster structure is the nest assignment in M3. These 5 nests explain 71.2% of joint principal components variance. One can see Appendix A, to check  cluster quality diagnostics -- within-cluster sum of squares and average silhouette width (Rousseeuw, 1987) -- together with all downstream results for $K = 2, \dots, 10$.
 
 
 ```{r pca-anatomy, fig.cap="Anatomy of the joint embedding space. Left: variance explained by each joint principal component; the first five (blue) are retained. Right: image versus text composition of each retained component, all within 1.4 percentage points of an even split.", fig.width=7, fig.height=3.4}
@@ -617,7 +617,7 @@ Consequently, $\rho$ enters the equation through only one observable term, $\log
 ## Price Coefficient Calibration {#calibration}
 
 The problem of the lack of valid cost-side instruments, which we mentioned earlier, has forced us to find a different solution. Therefore, following the recommendation in the study by Werden and Froeb (1994) and also as a method occasionally used in the applied IO literature (DeSouza, 2009),  $\alpha$ is calibrated to match a target median own-price elasticity. Here, the target price elasticity 
-$\varepsilon_{\text{target}} = -2.62$, is based on the meta-analysis by Bijmolt et al. (2005, p. 141) and is consistent with analogous packaged goods. 
+$\varepsilon_{\text{target}} = -2.62$, is based on the meta-analysis by Bijmolt et al. (2005) and is consistent with analogous packaged goods. 
 
 $$\alpha = \frac{\varepsilon_{\text{target}}}{\operatorname{median}(p_{jt}(1-s_{jt}))} = \frac{-2.62}{8.4502} = -0.310$$
 
@@ -1216,7 +1216,7 @@ kbl(tab_pl, col.names = col_pl, format = tbl_fmt, booktabs = TRUE, escape = FALS
 
 
 
-## How much of the Result Driven by Brand? {#brand-tests}
+## How much of the Result is Driven by Brand? {#brand-tests}
 
 The placebo tests show that explanatory power of CLIP nesting on substitution patterns is can not be achieved with an random cross firm partition. However, since the embeddings are built from the whole listing, and the brand name and logo are part of what a shopper sees, it is reasonable ask whether the CLIP clusters are simply brand groups under another name. Three diagnostics address this question, and the honest answer has two parts: while the clusters are strongly correlated with brands, but this correlation is not what the result solely depends on.
 
@@ -1356,7 +1356,7 @@ All of the empirical studies and tests presented above and in the previous secti
 > $\max\{s_j\} < (\beta - 1)/(\beta - \epsilon)$, and there can be a negative
 > marginal cost only if demand is inelastic.
 >
-> --- Werden and Froeb (1994, p. 411, n. 7)
+> (Werden \& Froeb, 1994, p. 411, n. 7)
 
 In their notation $\beta$ is the cross-elasticity parameter governing substitution among the inside goods and $\epsilon$ the aggregate elasticity of demand for those goods; neither corresponds to the $\beta$ that denotes the characteristic coefficients elsewhere in this thesis. At this point, it would not be wrong to argue that embedding nesting serves as a practical empirical solution rather than a mere assumption. However, the contribution remains generic, as explained in detail earlier in Section \@ref(placebo).
 
@@ -1426,11 +1426,9 @@ Farrell, J., \& Shapiro, C. (1990). Horizontal mergers: An equilibrium analysis.
 
 Farrell, J., \& Shapiro, C. (2010). Antitrust evaluation of horizontal mergers: An economic alternative to market definition. *The B.E. Journal of Theoretical Economics, 10*(1), Article 9.
 
-Gandhi, A., \& Houde, J.-F. (2019). Measuring substitution patterns in differentiated-products industries. NBER Working Paper 26375.
-
 Grigolon, L., \& Verboven, F. (2014). Nested logit or random coefficients logit? A comparison of alternative discrete choice models of product differentiation. *Review of Economics and Statistics, 96*(5), 916--935.
 
-Hausman, J. A. (1996). Valuation of new goods under perfect and imperfect competition. In T. F. Bresnahan \& R. J. Gordon (Eds.), *The Economics of New Goods* (pp. 209--237). University of Chicago Press.
+Hausman, J. A. (1996). Valuation of new goods under perfect and imperfect competition. In T. F. Bresnahan \& R. J. Gordon (Eds.), *The Economics of New Goods* (pp. 207--248). University of Chicago Press.
 
 Hotelling, H. (1933). Analysis of a complex of statistical variables into principal components. *Journal of Educational Psychology, 24*(6), 417--441.
 
@@ -1472,7 +1470,6 @@ Werden, G. J., \& Froeb, L. M. (1994). The effects of mergers in differentiated 
 
 \clearpage
 
-# Appendix {-}
 
 ## Appendix A: K Sensitivity Analysis {-}
 
