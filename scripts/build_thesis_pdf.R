@@ -5,7 +5,7 @@
 # bilingual Zusammenfassung, TOC/LoF/LoT, chapter-level sections.
 #
 # Usage (from the repo root):
-#   Rscript scripts/build_thesis_pdf.R                # blp_thesis.Rmd
+#   Rscript scripts/build_thesis_pdf.R                # blp_thesis_h.Rmd
 #   Rscript scripts/build_thesis_pdf.R blp_thesis_h.Rmd
 #
 # Output: thesis/<input-stem>_oldenburg.pdf
@@ -13,7 +13,7 @@
 # table of contents and the figure/table lists are populated.
 # ============================================================================
 args  <- commandArgs(trailingOnly = TRUE)
-input <- if (length(args) >= 1) args[1] else "blp_thesis.Rmd"
+input <- if (length(args) >= 1) args[1] else "blp_thesis_h.Rmd"
 stopifnot(file.exists(input))
 stem  <- sub("\\.Rmd$", "", basename(input))
 

@@ -19,6 +19,7 @@ blp_cache/
 # Large intermediate files
 *calibrated*.csv
 *diagnostic*.csv
+!output/cluster_ownership_diagnostic.csv
 *validate_nash*.csv
 *unit_price*.csv
 *fix12*.csv

@@ -28,12 +28,17 @@
 % uebernommene Text unveraendert bleiben kann.
 \DeclareUnicodeCharacter{03B4}{\ensuremath{\delta}}
 \DeclareUnicodeCharacter{03BE}{\ensuremath{\xi}}
+\DeclareUnicodeCharacter{2212}{\ensuremath{-}}
+\DeclareUnicodeCharacter{03B2}{\ensuremath{\beta}}
+\DeclareUnicodeCharacter{0394}{\ensuremath{\Delta}}
+\DeclareUnicodeCharacter{200B}{}
+\DeclareUnicodeCharacter{03C1}{\ensuremath{\rho}}
 \usepackage{mathptmx}          % Times New Roman (Text und Mathe)
 \usepackage{setspace}
 \onehalfspacing        % 1,5-zeiliger Zeilenabstand
 \usepackage{etoolbox}
-\AtBeginEnvironment{tabular}{\singlespacing}
-\AtBeginEnvironment{longtable}{\singlespacing}
+\AtBeginEnvironment{tabular}{\setstretch{1}}
+\AtBeginEnvironment{longtable}{\setstretch{1}}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage[table]{xcolor}
@@ -58,6 +63,9 @@
 \usepackage{float}
 \floatplacement{figure}{H}
 \usepackage{placeins}
+% Tabellen/Abbildungen fortlaufend nummerieren (1, 2, 3 ...), nicht 2.1, 3.1
+\counterwithout{figure}{chapter}
+\counterwithout{table}{chapter}
 \renewcommand{\arraystretch}{1.15}
 
 % Pandoc-Hilfsmakros (vom R-Markdown-Body benötigt)
@@ -84,6 +92,8 @@
 \makeatother
 \setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
 
+\usepackage{xurl}          % lange DOIs/URLs umbrechbar machen
+\emergencystretch=3em      % vereinzelte overfull hboxes im Fliesstext
 \usepackage{hyperref}
 \hypersetup{pdftitle={Demand Estimation with Unstructured Product Data},
             pdfauthor={Burak Uzun}, hidelinks}
@@ -110,11 +120,6 @@
 \begin{titlepage}
  \input{thesis/Titelseite.inc}
 \end{titlepage}
-
-% Leere Seite
-\newpage
-\thispagestyle{empty}
-\quad
 
 % Danksagung & Eigenstaendigkeitserklaerung
 \newpage
@@ -145,7 +150,8 @@ Oldenburg, den [TT]. [Monat] 2026
 \end{otherlanguage}
 
 % Zusammenfassung erstellen (jeweils auf Englisch und Deutsch)
-\begin{abstract}
+\newpage
+\thispagestyle{empty}
 \section*{Abstract}
 Merger simulation hinges on correctly measuring substitution patterns, yet the
 nesting structures used in practice are typically built from coarse labels such
@@ -194,7 +200,7 @@ Scheindiversion ist. Die Ergebnisse legen nahe, dass einbettungsbasierte Nester
 ein praktikables, reproduzierbares Instrument der Wettbewerbsanalyse sind, wenn
 klassische Produkteigenschaften nicht verf\"ugbar sind.
 \end{otherlanguage}
-\end{abstract}
+
 
 % Inhaltsverzeichnis erstellen
 \tableofcontents

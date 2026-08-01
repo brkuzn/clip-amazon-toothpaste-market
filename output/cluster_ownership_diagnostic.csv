@@ -1,0 +1,6 @@
+nest_id,n_obs,n_asins,n_firms,dom_brand,dom_share_pct,negmc_M1_pct,negmc_M2_pct,negmc_M3_pct,max_abs_mc_change_M1_M3,n_repaired
+1,251,29,2,Sensodyne,39.44,1.99,1.99,1.99,2.1703,0
+2,254,33,3,Colgate,88.19,14.17,14.17,3.94,2.1669,26
+3,216,29,1,Crest,100,2.31,2.31,2.31,0.0026,0
+4,85,13,1,Tom's of Maine,100,0,0,0,0.0185,0
+5,358,55,7,Other,54.47,15.08,15.08,0,2.1561,54

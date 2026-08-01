@@ -26,6 +26,6 @@ Burak Uzun\\
 [Tag]. [Monat] 2026\\
 \vspace{3cm}
 1. Gutachter: Prof. Dr. Cristian Huse\\
-2. Gutachter: [Name des Zweitgutachters / der Zweitgutachterin]
+2. Gutachter: Thomas Handke
 \end{center}
 \newpage
