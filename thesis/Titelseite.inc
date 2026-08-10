@@ -22,7 +22,7 @@ Evidence from Amazon's Toothpaste Market
 \vspace{3cm}
 Burak Uzun\\
 \vspace{.5cm}
-15.08.2026\\
+10.08.2026\\
 \vspace{3cm}
 1. Gutachter: Prof. Dr. Cristian Huse\\
 2. Gutachter: Thomas Handke
