@@ -1652,12 +1652,14 @@ kbl(r2_tab, col.names = if (is_pdf) c("Component", "Brand $R^2$") else c("Compon
   kable_styling(bootstrap_options = c("striped","hover","condensed"),
                 latex_options = c("HOLD_position"),
                 font_size = if (is_pdf) 9 else 13, full_width = FALSE) |>
+  column_spec(1, width = if (is_pdf) "6.5cm" else NULL) |>
+  column_spec(2, width = if (is_pdf) "6.5cm" else NULL) |>
   footnote(general = paste0(
     "ASIN-level OLS of each component on a full set of brand_grouped_50 dummies. ",
     "The variance-weighted average across the five components is 0.736, so the ",
     "brand-residual space used in Section 4.7 retains 26.4% of the original ",
     "variance. Source: scripts/brand_orthogonal_nesting.R."),
-    escape = TRUE, threeparttable = FALSE, general_title = "Notes: ")
+    escape = TRUE, threeparttable = TRUE, general_title = "Notes: ")
 ```
 
 Table \@ref(tab:appendix-pct) reports the joint-PC coefficients once brand is
