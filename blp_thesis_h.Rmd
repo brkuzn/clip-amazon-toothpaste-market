@@ -169,7 +169,7 @@ This study and its contributions are primarily grounded in the literature under 
 
 ### Discrete Choice Demand and Merger Simulations
 
-The demand framework is derived from the discrete choice literature. The literature shows that logit models can be linearized by inverting market shares (Berry, 1994). From there, under Bertrand competition, first-order conditions can be used to invert observed prices and recover marginal costs. The well-known BLP (Berry et al., 1995) generalized this framework to random-coefficient logit models, which allows for more flexible substitution patterns and is now standard in merger simulation. However, the resulting complex modeling (continuous consumer heterogeneity across product characteristics) made the equation multidimensional and rendered inversion impossible. To overcome this “curse of dimensionality,” a contraction mapping (a fixed-point iteration algorithm) was introduced. This algorithm numerically inverted market share to recover the mean product utility (δ). Thus, once the mean utility was recovered, the effect of unobserved product quality (ξ) could be isolated as a linear residual. Although standard logit model is computationally quite advantageous over Mixed Logit, it suffers from a major drawback, the Independence of Irrelevant Alternatives (IIA) property, which motivates the use of nested logit and random-coefficient models instead. This model is based on the assumption that consumers substitute between products purely in proportion to their market shares, without considering the products’ actual characteristics, which poses serious practical difficulties. While Random Coefficients models break this assumption at the aggregate level by mixing over consumer types, nested logit models relax this rigid assumption by grouping similar products (allowing the unobserved components of utility to be correlated within nests) (Cardell, 1997).
+The demand framework is derived from the discrete choice literature. The literature shows that logit models can be linearized by inverting market shares (Berry, 1994). From there, under Bertrand competition, first-order conditions can be used to invert observed prices and recover marginal costs. The well-known BLP (Berry et al., 1995) generalized this framework to random-coefficient logit models, which allows for more flexible substitution patterns and is now standard in merger simulation. However, the resulting complex modeling (continuous consumer heterogeneity across product characteristics) made the equation multidimensional and rendered inversion impossible. To overcome this “curse of dimensionality,” a contraction mapping (a fixed-point iteration algorithm) was introduced. This algorithm numerically inverted market share to recover the mean product utility (δ). Thus, once the mean utility was recovered, the effect of unobserved product quality (ξ) could be isolated as a linear residual. Although standard logit model is computationally quite advantageous over Mixed Logit, it suffers from a major drawback, the Independence of Irrelevant Alternatives (IIA) property (McFadden, 1974), which motivates the use of nested logit and random-coefficient models instead. This model is based on the assumption that consumers substitute between products purely in proportion to their market shares, without considering the products’ actual characteristics, which poses serious practical difficulties. While Random Coefficients models break this assumption at the aggregate level by mixing over consumer types, nested logit models relax this rigid assumption by grouping similar products (allowing the unobserved components of utility to be correlated within nests) (Cardell, 1997).
 Comparing RCNL (Random Coefficient Nested Logit), RC (Random Coefficient Logit), and Nested Logit (NL) models using the EU automobile market, Grigolon and Verboven (2014) found that although nested and mixed/RC logit models can produce different substitution patterns, they produce very similar price effect predictions on merger effects, nested logit even more precise to the observed effect with a better fit (NL $\chi^2$ = 30.61 against RCNL and RC $\chi^2$ = 423.84 against RCNL). More directly relevant here, they also concluded that segmentation via nesting captures discrete market segmentation that continuously measured product characteristics do not capture, which is what makes the nesting structure itself consequential. Based on this logic, it can be argued that choice of nesting structure—the primary focus of our study—a binding constraint. More specifically, nesting choices depend on firm-specific priors (brand, category, or observed characteristics), and the resulting substitution patterns are only as good as those priors. The basic framework for the practical application of these models is outlined in Nevo (2000a). A comprehensive application of the method—encompassing all structural stages such as demand forecasting, margin recovery, and the analysis of competitive scenarios—was successfully demonstrated by Nevo (2000b) in the context of the ready-to-eat breakfast cereal sector, a fast-moving consumer good similar to the toothpaste market.
 
 
@@ -215,7 +215,7 @@ The estimation sample was constructed in three main steps, each defined by a pra
 
 2. **Brand grouping (12 groups).** Brands accounting for more than 2% of purchases each were evaluated as separate groups on their own (Colgate, Crest, SENSODYNE PRONAMEL, Sensodyne, Tom’s of Maine, Arm & Hammer, hello, Parodontax, APAGARD, JASON, and Orajel); while all remaining smaller brands have been combined into a single “Other” category. The eleven groups listed represent 87% of total purchases.
 
-3. **Panel filters (159 ASINs, 1,164 observations).** Purchases are aggregated at the ASIN × quarter cell level. The forecast window ends in Q3 2022 (due to incomplete coverage of subsequent quarters), and ASINs were required to appear in at least three quarters to be included in the sample; this prevents products with market shares close to zero from dominating the sample due to sampling error. The resulting panel dataset covers the period from 2018Q1 to 2022Q3 (19 quarters, 159 ASINs, and 1,164 observations). The three counts describe successive stages rather than competing samples: 167 ASINs enter the choice set, 159 survive the panel filters and constitute the estimation sample used throughout, and 155 of the original 167 carry both modalities and therefore define the space on which the joint PCA is fit.
+3. **Panel filters (159 ASINs, 1,164 observations).** Purchases are aggregated at the ASIN × quarter cell level. The forecast window ends in Q3 2022 (due to incomplete coverage of subsequent quarters), and ASINs were required to appear in at least three quarters to be included in the sample; this prevents products with market shares close to zero from dominating the sample due to sampling error. The three counts (167, 159, 155) refer to two independent restrictions on the same choice set, not to successive stages. Of the 167 ASINs, 159 appear in at least three quarters and form the estimation sample used throughout. Independently, 155 of the 167 carry both an image and a text embedding; the shared space of Section 3.1 is fit on these, and the remaining 12 products, which have a text embedding only, are projected into the fitted space. All 159 estimation-sample products therefore have complete coordinates.
 
 Market shares were derived from purchase counts based on revealed preferences. Market size was defined as $M_t = \lambda \cdot \sum_j q_{jt}$ with $\lambda = 13.93$, indicating an approximate 93% share of outside goods (Huang et al., 2008). Assuming that the consumer’s primary decision-making mechanism (discrete choice) on e-commerce platforms is not “how many grams should I buy?” but rather “which product (ASIN) should I choose?” By treating package size as a control variable in the model—and thus already accounting for the utility effect of weight differences within the mean utility equation—it was decided to calculate market shares based on purchase count rather than grams. One can see robustness checks of market size in Appendix C.
 
@@ -275,7 +275,7 @@ Each product \(j\) is represented by concatenating the list image with the title
 $$\mathbf{e}^{I}_{j} = \frac{f_I(\text{image}_j)}{\lVert f_I(\text{image}_j) \rVert}, \qquad
 \mathbf{e}^{T}_{j} = \frac{f_T(\text{text}_j)}{\lVert f_T(\text{text}_j) \rVert}.$$
 
-In this study, the functionality of the CLIP model lies in its training objective. The CLIP model consists of two distinct network architectures: one is the more well-known text transformer (Vaswani et al., 2023), and the other is the ViT-B/32 Vision Transformer (as used in this study). This vision transformer processes each image sequentially by dividing it into 32x32-pixel patches, similar to how a language model processes tokens (Dosovitskiy et al., 2021; the checkpoint is specified in Radford et al., 2021). Both networks are mapped to a 512-dimensional space, and model training was conducted in a contrastive manner on 400 million image-text pairs collected from the web: In each training batch consisting of \(N\) pairs, the model is trained to maximize the cosine similarity of the \(N\) correct image-caption matches while minimizing the similarity of all incorrectly matched pairs (Radford et al., 2021). Figure \@ref(fig:clip-scheme) illustrates the objective and role of this empirical workflow.
+In this study, the functionality of the CLIP model lies in its training objective. The CLIP model consists of two distinct network architectures: one is the more well-known text transformer (Vaswani et al., 2017), and the other is the ViT-B/32 Vision Transformer (as used in this study). This vision transformer processes each image sequentially by dividing it into 32x32-pixel patches, similar to how a language model processes tokens (Dosovitskiy et al., 2021; the checkpoint is specified in Radford et al., 2021). Both networks are mapped to a 512-dimensional space, and model training was conducted in a contrastive manner on 400 million image-text pairs collected from the web: In each training batch consisting of \(N\) pairs, the model is trained to maximize the cosine similarity of the \(N\) correct image-caption matches while minimizing the similarity of all incorrectly matched pairs (Radford et al., 2021). Figure \@ref(fig:clip-scheme) illustrates the objective and role of this empirical workflow.
 
 Two characteristics of the conrtastive training objective matter directly for how product caption data is used here. First, since the product captions describe products using everyday marketing language like “activated charcoal whitening toothpaste,” the trained space encodes the vocabulary of product features that distinguish consumer goods without requiring any category specific additional training. Also, since images and texts are embedded in a single integrated space, these two modalities can be combined into a single product representation. We explain how the joint Principal Component Analysis (PCA) utilized below takes advantage of this method.
 
@@ -344,7 +344,7 @@ The clustering structure was established using k-means (Lloyd, 1982), and each p
 
 $$g_j = \arg\min_{g \in \{1,\dots,K\}} \lVert \mathbf{pc}_j - \mathbf{c}_g \rVert^2,$$
 
-with centroids $\mathbf{c}_g$ from 50 random draws, and cluster structure is the nest assignment in M3. These 5 nests explain 71.2% of joint principal components variance. One can see Appendix A, to check  cluster quality diagnostics -- within-cluster sum of squares and average silhouette width (Rousseeuw, 1987) -- together with all downstream results for $K = 2, \dots, 10$.
+with centroids $\mathbf{c}_g$ from 50 random draws, and cluster structure is the nest assignment in M3. These 5 nests explain 71.2% of joint principal components variance. One can see Appendix A, to check cluster quality diagnostics -- within cluster sum of squares and average silhouette width (Rousseeuw, 1987) -- together with all downstream results for $K = 2, \dots, 10$.
 
 
 ```{r pca-anatomy, fig.cap="Anatomy of the joint embedding space. Left: variance explained by each joint principal component; the first five (blue) are retained. Right: image versus text composition of each retained component, all within 1.4 percentage points of an even split.", fig.width=7, fig.height=3.4}
@@ -634,7 +634,7 @@ However, in the robustness checks we conducted to assess this variation (Appendi
 The searching of the optimal $\rho^*$ is based on the “concentrating out” technique. This technique was introduced to the literature by Berry et al. (1995)—famously known as BLP—and has been used for structural demand forecasting, as also famously known in the literature by Nevo (2000a).
 Although this approach was originally used in Random Coefficient models to isolate linear parameters from the nonlinear search space, it has also been directly integrated into the nested logit framework by Grigolon and Verboven (2014) by isolating the nesting parameter $\rho^*$ as a nonlinear parameter.
 
-Since the price coefficient $\alpha$ is already  known (because it's calibrated as explained in detail in Section \@ref(calibration)),  the nested logit inversion yields an equation that is strictly linear in $\boldsymbol{\beta}$ for any given $\rho$, the linear product terms $\boldsymbol{\beta}$ can be analytically concentrated out of the linear search routine. As a result, we do not estimate/search for all parameters at once. But we reduce the problem has to a simply designed one dimension grid search for $\rho$.
+Since the price coefficient $\alpha$ is already known (because it's calibrated as explained in detail in Section \@ref(calibration)),  the nested logit inversion yields an equation that is strictly linear in $\boldsymbol{\beta}$ for any given $\rho$, the linear product terms $\boldsymbol{\beta}$ can be analytically concentrated out of the linear search routine. As a result, we do not estimate/search for all parameters at once. But we reduce the problem has to a simply designed one dimension grid search for $\rho$.
 
 Now the search is on a $\rho$ on a defined grid {0, 0.01, …, 0.90}, the adjusted dependent variable $\tilde{y}_{jt}(\rho)$ is formed, and the corresponding $\boldsymbol{\beta}(\rho)$ vector is estimated using Ordinary Least Squares:
 
@@ -692,7 +692,7 @@ if (is_pdf) {
   logit_rho   <- "0.000 (b)"
   fmt_rho     <- function(b) paste0(sprintf("%.3f", b), " (b)")
   sym_notes   <- NULL
-  gen_note    <- "*** p<0.01, ** p<0.05, * p<0.10. FEs by quarter. N=1,164. (a) calibrated alpha; (b) grid-searched rho*. Sections 4.2-4.3."
+  gen_note    <- "*** p<0.01, ** p<0.05, * p<0.10. FEs by quarter. N=1,164. (a) calibrated alpha; (b) grid-searched $\\rho^*$. Sections 3.4-3.5."
   summ_rows   <- data.table(
     variable = c("Quarter FEs", "Median implied $\\varepsilon_{jj}$", "RSS drop vs $\\rho$=0"),
     M1 = c("Yes", "$-$2.62", "---"),
@@ -736,6 +736,13 @@ if (is_pdf) {
                     "M3: CLIP-Nested (rho*=0.67)")
 }
 
+# PDF uses a typeset minus ($-$) in alpha_cell; sprintf emits an ASCII hyphen.
+# Guarded on is_pdf so the HTML branch keeps plain hyphens.
+fmt_num <- function(x, digits = 4) {
+  s <- sprintf(paste0("%.", digits, "f"), x)
+  if (is_pdf) sub("^-", "$-$", s) else s
+}
+
 fmt_coef <- function(dt, model_name) {
   dt2 <- dt[variable %in% names(var_labels)]
   dt2[, cell := fcase(
@@ -746,7 +753,7 @@ fmt_coef <- function(dt, model_name) {
     variable == "rho",
       fmt_rho(beta),
     !is.na(se),
-      paste0(sprintf("%.4f", beta), signif, " (", sprintf("%.4f", se), ")"),
+      paste0(fmt_num(beta), signif, " (", fmt_num(se), ")"),
     default = ""
   )]
   dt2[, .(variable, cell)]
@@ -780,14 +787,14 @@ kbl(tab2,
   row_spec(1, bold = TRUE, background = "#EEF2FF") |>
   row_spec(n_main, extra_css = "border-bottom: 2px solid #aaa;",
            hline_after = TRUE) |>
-  footnote(general = gen_note, escape = TRUE, threeparttable = TRUE, general_title = "Notes: ")
+  footnote(general = gen_note, escape = FALSE, threeparttable = TRUE, general_title = "Notes: ")
 ```
 
 \vspace{1em}
 
 ## Own-Price Elasticities by Brand
 
-The median own-price elasticities by brand group for each model are shown in \@ref(tab:brand-elas). There are two notable motifs. Initially, elasticities scale with price levels in each model. Premium brands like APAGARD and SENSODYNE PRONAMEL are the most elastic as the nested-logit own-price elasticity is proportional to $\alpha p_j$. Second,  from plain logit to CLIP nested logit  all elasticities differ by $1/(1-\rho^{*})$, such increase can be explained with cluster composition: brands that share a dense embedding cluster are subject to the largest within-nest competitors. Same trend is also observable for the merging brands. Because its closest substitutes are the natural/specialty goods in its own nset rather than Colgate, hello's median elasticity increases from $-1.42$ under plain logit to $-4.05$ under CLIP nesting.
+The median own-price elasticities by brand group for each model are shown in \@ref(tab:brand-elas). There are two notable motifs. Initially, elasticities scale with price levels in each model. Premium brands like APAGARD and SENSODYNE PRONAMEL are the most elastic as the nested-logit own-price elasticity is proportional to $\alpha p_j$. Second, from plain logit to CLIP nested logit all elasticities differ by $1/(1-\rho^{*})$, this increase can be explained by cluster composition: brands that share a dense embedding cluster are subject to the largest within-nest competitors. Same trend is also observable for the merging brands. Because its closest substitutes are the natural/specialty goods in its own nest rather than Colgate, hello's median elasticity increases from $-1.42$ under plain logit to $-4.05$ under CLIP nesting.
 
 ```{r brand-elas}
 be <- rbindlist(list(
@@ -943,7 +950,7 @@ kbl(tab3_flat,
   )
 ```
 
-Figure \@ref(fig:trajectories) presents post-merger  price trajectories  for each quarter. It can be seen that the prices after the merger are differentiating "if there was no merger" scenario, especially for hello. But for Colgate, the prices look almost identical for both.
+Figure \@ref(fig:trajectories) presents post-merger price trajectories for each quarter. It can be seen that the prices after the merger are differentiating "if there was no merger" scenario, especially for hello. But for Colgate, the prices look almost identical for both.
 
 ```{r trajectories, fig.cap="Merger simulation price trajectories (Model 3, CLIP-Nested, $\\rho^*=0.67$). Top: Nash prices under merged and pre-merger ownership. Bottom: the merger price effect in percent, positive for hello (red) and near zero for Colgate (blue).", fig.width=7, fig.height=6}
 
@@ -977,7 +984,7 @@ colgate_annot <- data.table(
   brand   = "Colgate",
   qtr_num = length(post_qtrs) * 0.55,
   price   = Inf,   # will be nudged to top via vjust
-  label   = "Lines overlap\n(Δp ≈ 0.018%)"
+  label   = "Lines overlap\n(dp ~ 0.018%)"
 )
 
 p_levels <- ggplot(price_long,
@@ -1025,7 +1032,7 @@ p_levels / p_effect + plot_layout(heights=c(2,1))
 
 ## Cross-Model Comparison
 
-Comparisons of the economic plausibility of the results across the three models are summarized below. As has been mentioned repeatedly, the main reason is the inflated markups resulting from an underestimation of substitutability. The last column shows how prices affect consumers, using a special "nested logit inclusive value" formula, which was developed by Small and Rosen in 1981. It measures how much consumers wealth is reduced by certain pricing practices.Consequently, we see that in CLIP nested logit the harm to consumers is about one-third of what it would be in plain logit.
+Comparisons of the economic plausibility of the results across the three models are summarized below. As mentioned, the reason is the inflated markups resulting from an underestimation of substitutability. The last column reports how prices affect consumers, using the welfare framework for discrete choice models, which was introduced by Small and Rosen in 1981. It measures how much consumer's wealth is reduced by certain pricing practices.Consequently, we see that in CLIP nested logit the harm to consumers is about one-third of what it would be in plain logit.
 
 ```{r cross-model}
 pct4 <- if (is_pdf) "\\%" else "%"
@@ -1218,7 +1225,7 @@ kbl(tab_pl, col.names = col_pl, format = tbl_fmt, booktabs = TRUE, escape = FALS
 
 ## How much of the Result is Driven by Brand? {#brand-tests}
 
-The placebo tests show that the explanatory power of CLIP nesting on substitution patterns cannot be achieved with a random cross-firm partition. However, since the embeddings are built from the whole listing, and the brand name and logo are part of what a shopper sees, it is reasonable to ask whether the CLIP clusters are simply brand groups under another name. Three diagnostics address this question, and the honest answer has two parts: while the clusters are strongly correlated with brands, but this correlation is not what the result solely depends on.
+The placebo tests show that the explanatory power of CLIP nesting on substitution patterns cannot be achieved with a random cross-firm partition. However, since the embeddings are built from the whole listing, and the brand name and logo are part of what a shopper sees, it is reasonable to ask whether the CLIP clusters are simply brand groups under another name. Three diagnostics address this question, and the honest answer has two parts: while the clusters are strongly correlated with brands, this correlation is not what the result solely depends on.
 
 ```{r brand-tests-setup, include=FALSE}
 # Reproducibility: each table below is read from a committed results file. If a
@@ -1347,7 +1354,7 @@ kbl(bfe_tab, col.names = colF, format = tbl_fmt, booktabs = TRUE, escape = FALSE
 
 All of the empirical studies and tests presented above and in the previous sections are intended to establish transparency, traceability, and a scientific design for each specific case. And all of them have shown that the method should not be used to make further claims without additional research. It is essential to mention certain limitations of the study:
 
-**To what extent the “negative marginal cost correction” reflects the soundness of the model**: It is clear that the embedding structure may offer an advantage over the standard demand estimation approach in the literature. The “inflated markup” problem has long necessitated various assumptions in the literature.
+**To what extent the “negative marginal cost correction” reflects the soundness of the model**: It is clear that the embedding structure may offer an advantage over the standard demand estimation approach in the literature. The “inflated markup” problem has long necessitated various assumptions in the literature:
 
 > Negative marginal costs would cause mergers to have unrealistic welfare
 > effects, so we assume throughout that all shares are small enough that all
@@ -1394,79 +1401,80 @@ All data, code, and the R Markdown source of this paper are openly available at 
 
 # References {-}
 
-Bajari, P., Nekipelov, D., Ryan, S., \& Yang, M. (2015). Demand Estimation with Machine Learning and Model Combination (No. W20955; p. w20955). National Bureau of Economic Research. https://doi.org/10.3386/w20955
+Bajari, P., Nekipelov, D., Ryan, S., \& Yang, M. (2015). *Demand Estimation with Machine Learning and Model Combination* (No. W20955; p. w20955). National Bureau of Economic Research. https://doi.org/10.3386/w20955
 
-Berke, A., Calacci, D., Mahari, R., Yabe, T., Larson, K., \& Pentland, S. (2024). Open e-commerce 1.0, five years of crowdsourced U.S. Amazon purchase histories with user demographics. *Scientific Data, 11*, 491. https://doi.org/10.1038/s41597-024-03329-6
+Berke, A., Calacci, D., Mahari, R., Yabe, T., Larson, K., & Pentland, S. (2024). Open e-commerce 1.0, five years of crowdsourced U.S. Amazon purchase histories with user demographics. *Scientific Data*, *11*(491). https://doi.org/10.1038/s41597-024-03329-6
 
-Berry, S. T. (1994). Estimating discrete-choice models of product differentiation. *RAND Journal of Economics, 25*(2), 242--262.
+Berry, S. T. (1994). Estimating discrete-choice models of product differentiation. *The RAND Journal of Economics*, *25*(2), 242–262.
 
-Berry, S., Levinsohn, J., \& Pakes, A. (1995). Automobile Prices in Market Equilibrium. Econometrica, 63(4), 841. https://doi.org/10.2307/2171802
+Berry, S., Levinsohn, J., & Pakes, A. (1995). Automobile prices in market equilibrium. *Econometrica*, *63*(4), 841–890. https://doi.org/10.2307/2171802
 
-Bijmolt, T. H. A., Van Heerde, H. J., \& Pieters, R. G. M. (2005). New Empirical Generalizations on the Determinants of Price Elasticity. Journal of Marketing Research, 42(2), 141--156. https://doi.org/10.1509/jmkr.42.2.141.62296
+Bijmolt, T. H. A., Van Heerde, H. J., & Pieters, R. G. M. (2005). New empirical generalizations on the determinants of price elasticity. *Journal of Marketing Research*, *42*(2), 141–156. https://doi.org/10.1509/jmkr.42.2.141.62296
 
-Björnerstedt, J., \& Verboven, F. (2016). Does Merger Simulation Work? Evidence from the Swedish Analgesics Market. American Economic Journal: Applied Economics, 8(3), 125--164. https://doi.org/10.1257/app.20130034
+Björnerstedt, J., & Verboven, F. (2016). Does merger simulation work? Evidence from the Swedish analgesics market. *American Economic Journal: Applied Economics*, *8*(3), 125–164. https://doi.org/10.1257/app.20130034
 
-Cardell, N. S. (1997). Variance Components Structures for the Extreme-Value and Logistic Distributions with Application to Models of Heterogeneity. Econometric Theory, 13(2), 185--213. https://doi.org/10.1017/S0266466600005727
+Cardell, N. S. (1997). Variance components structures for the extreme-value and logistic distributions with application to models of heterogeneity. *Econometric Theory*, *13*(2), 185–213. https://doi.org/10.1017/S0266466600005727
 
-Colgate-Palmolive Company (2020). *We Are Colgate: 2020 Annual Report*. Colgate-Palmolive Company.
+Colgate-Palmolive Company. (2020). *We are Colgate: 2020 annual report*.
 
-Compiani, G., Morozov, I., \& Seiler, S. (2026). Demand estimation with text and image data. *The RAND Journal of Economics*. https://doi.org/10.1111/1756-2171.70052
+Compiani, G., Morozov, I., & Seiler, S. (2026). Demand estimation with text and image data. *The RAND Journal of Economics*. Advance online publication. https://doi.org/10.1111/1756-2171.70052
 
 Conlon, C., \& Gortmaker, J. (2020). Best practices for differentiated products demand estimation with PyBLP. The RAND Journal of Economics, 51(4), 1108--1161. https://doi.org/10.1111/1756-2171.12352
 
-Conlon, C., \& Mortimer, J. H. (2021). Empirical properties of diversion ratios. *RAND Journal of Economics, 52*(4), 693--726.
+Conlon, C., & Mortimer, J. H. (2021). Empirical properties of diversion ratios. *The RAND Journal of Economics*, *52*(4), 693–726
 
-DeSouza, S. A. (2009). *The Antitrust Mixed Logit Model*. Working Paper No. 04, Graduate School of Economics (CAEN), Universidade Federal do Ceará, Fortaleza, Brazil.
+DeSouza, S. A. (2009). *The antitrust mixed logit model* (Working Paper No. 04). Graduate School of Economics (CAEN), Universidade Federal do Ceará.
 
-Dosovitskiy, A., Beyer, L., Kolesnikov, A., Weissenborn, D., Zhai, X., Unterthiner, T., Dehghani, M., Minderer, M., Heigold, G., Gelly, S., Uszkoreit, J., \& Houlsby, N. (2021). An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale (arXiv:2010.11929). arXiv. https://doi.org/10.48550/arXiv.2010.11929
+Dosovitskiy, A., Beyer, L., Kolesnikov, A., Weissenborn, D., Zhai, X., Unterthiner, T., Dehghani, M., Minderer, M., Heigold, G., Gelly, S., Uszkoreit, J., & Houlsby, N. (2021). *An image is worth 16x16 words: Transformers for image recognition at scale* (arXiv:2010.11929). arXiv. https://doi.org/10.48550/arXiv.2010.11929
 
-Draganska, M., \& Jain, D. C. (2006). Consumer Preferences and Product-Line Pricing Strategies: An Empirical Analysis. Marketing Science, 25(2), 164--174. https://doi.org/10.1287/mksc.1050.0126
+Draganska, M., & Jain, D. C. (2006). Consumer preferences and product-line pricing strategies: An empirical analysis. *Marketing Science*, *25*(2), 164–174. https://doi.org/10.1287/mksc.1050.0126
 
-Farrell, J., \& Shapiro, C. (1990). Horizontal mergers: An equilibrium analysis. *American Economic Review, 80*(1), 107--126.
+Farrell, J., & Shapiro, C. (1990). Horizontal mergers: An equilibrium analysis. *The American Economic Review*, *80*(1), 107–126. 
 
 Farrell, J., \& Shapiro, C. (2010). Antitrust evaluation of horizontal mergers: An economic alternative to market definition. *The B.E. Journal of Theoretical Economics, 10*(1), Article 9.
 
-Grigolon, L., \& Verboven, F. (2014). Nested logit or random coefficients logit? A comparison of alternative discrete choice models of product differentiation. The Review of Economics and Statistics, 96(5), 916--935. https://doi.org/10.1162/REST_a_00420
+Grigolon, L., & Verboven, F. (2014). Nested logit or random coefficients logit? A comparison of alternative discrete choice models of product differentiation. *The Review of Economics and Statistics*, *96*(5), 916–935. https://doi.org/10.1162/REST_a_00420
 
-Hausman, J. A. (1996). Valuation of new goods under perfect and imperfect competition. In T. F. Bresnahan \& R. J. Gordon (Eds.), The economics of new goods (pp. 207--248). University of Chicago Press. http://www.nber.org/chapters/c6068
+Hausman, J. A. (1996). Valuation of new goods under perfect and imperfect competition. In T. F. Bresnahan & R. J. Gordon (Eds.), *The economics of new goods* (pp. 207–248). University of Chicago Press. http://www.nber.org/chapters/c6068
 
-Hotelling, H. (1933). Analysis of a complex of statistical variables into principal components. *Journal of Educational Psychology, 24*(6), 417--441. https://doi.org/10.1037/h0071325.
+Hotelling, H. (1933). Analysis of a complex of statistical variables into principal components. *Journal of Educational Psychology*, *24*(6), 417–441. https://doi.org/10.1037/h0071325
 
-Huang, D., Rojas, C., \& Bass, F. (2008). WHAT HAPPENS WHEN DEMAND IS ESTIMATED WITH A MISSPECIFIED MODEL?*. The Journal of Industrial Economics, 56(4), 809--839. https://doi.org/10.1111/j.1467-6451.2008.00361.x
+Huang, D., Rojas, C., & Bass, F. (2008). What happens when demand is estimated with a misspecified model? *The Journal of Industrial Economics*, *56*(4), 809–839. https://doi.org/10.1111/j.1467-6451.2008.00361.x
 
-Lloyd, S. (1982). Least squares quantization in PCM. IEEE Transactions on Information Theory, 28(2), 129--137. https://doi.org/10.1109/TIT.1982.1056489
+Lloyd, S. (1982). Least squares quantization in PCM. *IEEE Transactions on Information Theory*, *28*(2), 129–137. https://doi.org/10.1109/TIT.1982.1056489
 
-Magnolfi, L., McClure, J., \& Sorensen, A. (2025). Triplet Embeddings for Demand Estimation. American Economic Journal: Microeconomics, 17(1), 282--307. https://doi.org/10.1257/mic.20220248
+Magnolfi, L., McClure, J., & Sorensen, A. (2025). Triplet embeddings for demand estimation. *American Economic Journal: Microeconomics*, *17*(1), 282–307. https://doi.org/10.1257/mic.20220248
 
-McFadden, D. (1974). Conditional logit analysis of qualitative choice behavior. In P. Zarembka (Ed.), *Frontiers in Econometrics* (pp. 105--142). Academic Press.
+McFadden, D. (1974). Conditional logit analysis of qualitative choice behavior. In P. Zarembka (Ed.), *Frontiers in econometrics* (pp. 105–142). Academic Press.
 
-McFadden, D. (1978). Modelling the choice of residential location. In A. Karlqvist, L. Lundqvist, F. Snickars, \& J. Weibull (Eds.), Spatial interaction theory and planning models (pp. 75--96). North-Holland.
+McFadden, D. (1978). Modelling the choice of residential location. In A. Karlqvist, L. Lundqvist, F. Snickars, & J. Weibull (Eds.), *Spatial interaction theory and planning models* (pp. 75–96). North-Holland.
 
-Morrow, W. R., \& Skerlos, S. J. (2011). Fixed-point approaches to computing Bertrand-Nash equilibrium prices under mixed-logit demand. Operations Research, 59(2), 328--345. https://doi.org/10.1287/opre.1100.0894
+Morrow, W. R., & Skerlos, S. J. (2011). Fixed-point approaches to computing Bertrand-Nash equilibrium prices under mixed-logit demand. *Operations Research*, *59*(2), 328–345. https://doi.org/10.1287/opre.1100.0894
 
-Nevo, A. (2000a). A practitioner's guide to estimation of random-coefficients logit models of demand. *Journal of Economics \& Management Strategy, 9*(4), 513--548.
+Nevo, A. (2000a). A practitioner's guide to estimation of random-coefficients logit models of demand. *Journal of Economics & Management Strategy*, *9*(4), 513–548
 
-Nevo, A. (2000b). Mergers with differentiated products: The case of the ready-to-eat cereal industry. *RAND Journal of Economics, 31*(3), 395--421. https://doi.org/10.2307/2600994
+Nevo, A. (2000b). Mergers with differentiated products: The case of the ready-to-eat cereal industry. *The RAND Journal of Economics*, *31*(3), 395–421. https://doi.org/10.2307/2600994
 
-Nevo, A. (2001). Measuring market power in the ready-to-eat cereal industry. *Econometrica, 69*(2), 307--342.
+Nevo, A. (2001). Measuring market power in the ready-to-eat cereal industry. *Econometrica*, *69*(2), 307–342.
 
-Peters, C. (2006). Evaluating the performance of merger simulation: Evidence from the U.S. airline industry. The Journal of Law and Economics, 49(2), 627--649. https://doi.org/10.1086/505369
+Peters, C. (2006). Evaluating the performance of merger simulation: Evidence from the U.S. airline industry. *The Journal of Law and Economics*, *49*(2), 627–649. https://doi.org/10.1086/505369
 
-Radford, A., Kim, J. W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S., Sastry, G., Askell, A., Mishkin, P., Clark, J., Krueger, G., \& Sutskever, I. (2021). Learning Transferable Visual Models From Natural Language Supervision (arXiv:2103.00020). arXiv. https://doi.org/10.48550/arXiv.2103.00020
+Radford, A., Kim, J. W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S., Sastry, G., Askell, A., Mishkin, P., Clark, J., Krueger, G., & Sutskever, I. (2021). *Learning transferable visual models from natural language supervision* (arXiv:2103.00020). arXiv. https://doi.org/10.48550/arXiv.2103.00020
 
-Rousseeuw, P. J. (1987). Silhouettes: A graphical aid to the interpretation and validation of cluster analysis. Journal of Computational and Applied Mathematics, 20, 53--65. https://doi.org/10.1016/0377-0427(87)90125-7
+Rousseeuw, P. J. (1987). Silhouettes: A graphical aid to the interpretation and validation of cluster analysis. *Journal of Computational and Applied Mathematics*, *20*, 53–65.
 
-Ruiz, F. J. R., Athey, S., \& Blei, D. M. (2020). SHOPPER: A probabilistic model of consumer choice with substitutes and complements. The Annals of Applied Statistics, 14(1). https://doi.org/10.1214/19-AOAS1265
+Ruiz, F. J. R., Athey, S., & Blei, D. M. (2020). SHOPPER: A probabilistic model of consumer choice with substitutes and complements. *The Annals of Applied Statistics*, *14*(1), 1–27. https://doi.org/10.1214/19-AOAS1265
 
 Small, K. A., \& Rosen, H. S. (1981). Applied welfare economics with discrete choice models. Econometrica, 49(1), 105--130. https://doi.org/10.2307/1911129
 
-Train, K. E. (2009). *Discrete Choice Methods with Simulation* (2nd ed.). Cambridge University Press.
+Train, K. E. (2009). *Discrete choice methods with simulation* (2nd ed.). Cambridge University Press.
 
-U.S. Department of Justice \& Federal Trade Commission (2010). *Horizontal Merger Guidelines*. Washington, DC. Issued August 19, 2010.
+U.S. Department of Justice, & Federal Trade Commission. (2010). *Horizontal merger guidelines*. https://www.justice.gov/atr/file/810276/dl
 
-Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, L., \& Polosukhin, I. (2023). Attention Is All You Need (arXiv:1706.03762). arXiv. https://doi.org/10.48550/arXiv.1706.03762
+Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, Ł., & Polosukhin, I. (2017). *Attention is all you need* (arXiv:1706.03762). arXiv. https://doi.org/10.48550/arXiv.1706.03762
 
-Werden, G. J., \& Froeb, L. M. (1994). The effects of mergers in differentiated products industries: Logit demand and merger policy. The Journal of Law, Economics, \& Organization, 10(2), 407--426. https://doi.org/10.1093/oxfordjournals.jleo.a036857
+Werden, G. J., & Froeb, L. M. (1994). The effects of mergers in differentiated products industries: Logit demand and merger policy. *The Journal of Law, Economics, & Organization*, *10*(2), 407–426. https://doi.org/10.1093/oxfordjournals.jleo.a036857
+
 
 \clearpage
 ## Appendix A: K Sensitivity Analysis {-}
@@ -1642,14 +1650,14 @@ kbl(r2_tab, col.names = if (is_pdf) c("Component", "Brand $R^2$") else c("Compon
     caption = "Share of Each Joint Principal Component Explained by Brand Dummies",
     align = c("l","r")) |>
   kable_styling(bootstrap_options = c("striped","hover","condensed"),
-                latex_options = c("HOLD_position", "scale_down"),
+                latex_options = c("HOLD_position"),
                 font_size = if (is_pdf) 9 else 13, full_width = FALSE) |>
   footnote(general = paste0(
     "ASIN-level OLS of each component on a full set of brand_grouped_50 dummies. ",
     "The variance-weighted average across the five components is 0.736, so the ",
     "brand-residual space used in Section 4.7 retains 26.4% of the original ",
     "variance. Source: scripts/brand_orthogonal_nesting.R."),
-    escape = TRUE, threeparttable = TRUE, general_title = "Notes: ")
+    escape = TRUE, threeparttable = FALSE, general_title = "Notes: ")
 ```
 
 Table \@ref(tab:appendix-pct) reports the joint-PC coefficients once brand is
