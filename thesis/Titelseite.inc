@@ -16,8 +16,7 @@
 {\begin{minipage}[t]{12cm}
 \centering
 \Large
-Demand Estimation with Unstructured Product Data:\\
-Evidence from Amazon's Toothpaste Market
+Demand Estimation with Unstructured Product Data
 \end{minipage}}\\
 \vspace{3cm}
 Burak Uzun\\
